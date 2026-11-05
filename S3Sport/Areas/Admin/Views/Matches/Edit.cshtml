@@ -82,6 +82,7 @@
                 <div class="col-md-6">
                     <label asp-for="OperatorUserId" class="form-label"></label>
                     <select asp-for="OperatorUserId" asp-items="Model.Operators" class="form-select"><option value="">— (مسؤولو البطولة والمدراء فقط)</option></select>
+                    <div class="form-text">تظهر هنا أيضاً حسابات مسؤولي الفرق المعتمدة (صاحب الفريق الذي سجّله). مسؤول الفريق يُعيَّن فقط لمباراة فريقه طرف فيها.</div>
                     <span asp-validation-for="OperatorUserId" class="field-validation-error"></span>
                 </div>
                 <div class="col-md-6"><label asp-for="Notes" class="form-label"></label><input asp-for="Notes" class="form-control" placeholder="سبب التأجيل مثلاً" /></div>

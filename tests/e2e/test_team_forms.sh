@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Team-manager forms submitted the way a browser does: every hidden field (Id, TeamId, JoinedOn, RowVersion) is
+# taken from the rendered page, not typed by the test. Guards against the route {id} (the team) leaking into a
+# form's hidden Id (the player/match), which made "add player" fail with "غير مخول" and edits target other records.
+cd "$(dirname "$0")"
+. ./lib.sh
+rm -f tf_*.jar
+for i in $(seq 1 60); do curl -s -o /dev/null $BASE/ && break; sleep 1; done
+R=$RANDOM
+KHOUDH=$(sql "SELECT Id FROM Areas WHERE NameEn='Al Khoudh'")
+hidden() { formval "$(cat $T/body.html)" "$1"; }   # value of a hidden input on the page just fetched
+
+echo "== Setup: a team whose id equals an existing player id of ANOTHER team (the original failure)"
+for n in A B; do
+  sql "INSERT INTO Teams(SportId,NameAr,NameEn,Slug,Status,IsDeleted,CreatedAt) VALUES(1,N'نموذج $n $R','Form $n $R','tf-$n-$R',1,0,SYSUTCDATETIME()); INSERT INTO TeamAreas(TeamId,AreaId,IsPrimary) VALUES(SCOPE_IDENTITY(),$KHOUDH,1);" > /dev/null
+done
+TA=$(sql "SELECT Id FROM Teams WHERE Slug='tf-A-$R'"); TB=$(sql "SELECT Id FROM Teams WHERE Slug='tf-B-$R'")
+# Make sure a player with id = TA exists and belongs to team B.
+sql "SET IDENTITY_INSERT Players ON; IF NOT EXISTS (SELECT 1 FROM Players WHERE Id=$TA) INSERT INTO Players(Id,SportId,FullNameAr,IsDeleted,CreatedAt) VALUES($TA,1,N'لاعب الفريق الآخر',0,SYSUTCDATETIME()); SET IDENTITY_INSERT Players OFF;
+     IF NOT EXISTS (SELECT 1 FROM TeamPlayers WHERE PlayerId=$TA AND IsActive=1) INSERT INTO TeamPlayers(TeamId,PlayerId,ShirtNumber,JoinedOn,IsActive,IsCaptain,CreatedAt) VALUES($TB,$TA,99,'2026-01-01',1,0,SYSUTCDATETIME());" > /dev/null
+TOK=$(token tf_m.jar "/Account/Register?type=user"); post tf_m.jar /Account/Register "$TOK" -d "FullName=$(urlenc "مسؤول نموذج")" -d Email=tf-$R@test.om -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
+TOK=$(token tf_a.jar /Account/Login); post tf_a.jar /Account/Login "$TOK" -d Email=admin@s3sport.om --data-urlencode "Password=$ADMIN_PW" > /dev/null
+TOK=$(token tf_a.jar /Admin/Teams/Edit/$TA); post tf_a.jar /Admin/Teams/AddMember/$TA "$TOK" -d email=tf-$R@test.om -d role=Manager > /dev/null
+check "manager of team A" 200 "$(get tf_m.jar /MyTeams/Squad/$TA)"
+
+echo "== Add player (form as rendered)"
+check "add-player form" 200 "$(get tf_m.jar /MyTeams/AddPlayer/$TA)"
+check "hidden Id is 0 for a new player (not the team id)" 0 "$(hidden Id)"
+check "hidden TeamId is the team" "$TA" "$(hidden TeamId)"
+JOINED=$(hidden JoinedOn)
+check "joined date in ISO format" 1 "$(echo "$JOINED" | grep -c -E '^[0-9]{4}-[0-9]{2}-[0-9]{2}$')"
+TOK=$(token tf_m.jar /MyTeams/AddPlayer/$TA)
+check "save new player" 302 "$(postm tf_m.jar /MyTeams/SavePlayer "$TOK" -F "Id=$(hidden Id)" -F "TeamId=$TA" -F "JoinedOn=$JOINED" -F "RowVersion=" -F "$(fv FullNameAr "لاعب جديد $R")" -F ShirtNumber=10)"
+check "…back on the squad, not access denied" "/MyTeams/Squad/$TA" "$(cat $T/location)"
+NEWP=$(sql "SELECT Id FROM Players WHERE FullNameAr=N'لاعب جديد $R'")
+check "player created in team A with today's join date" 1 "$(sql "SELECT COUNT(*) FROM TeamPlayers WHERE PlayerId=$NEWP AND TeamId=$TA AND IsActive=1 AND JoinedOn='$JOINED'")"
+check "other team's player untouched" 1 "$(sql "SELECT COUNT(*) FROM Players WHERE Id=$TA AND FullNameAr NOT LIKE N'%$R%' AND IsDeleted=0")"
+
+echo "== Edit player (form as rendered)"
+check "edit form" 200 "$(get tf_m.jar "/MyTeams/EditPlayer/$TA?playerId=$NEWP")"
+check "hidden Id is the player" "$NEWP" "$(hidden Id)"
+TOK=$(token tf_m.jar "/MyTeams/EditPlayer/$TA?playerId=$NEWP")
+check "save edit" 302 "$(postm tf_m.jar /MyTeams/SavePlayer "$TOK" -F "Id=$(hidden Id)" -F "TeamId=$(hidden TeamId)" -F "RowVersion=$(hidden RowVersion)" -F "$(fv FullNameAr "لاعب معدّل $R")" -F ShirtNumber=11)"
+check "the right player was edited" 1 "$(sql "SELECT COUNT(*) FROM Players WHERE Id=$NEWP AND FullNameAr=N'لاعب معدّل $R'")"
+
+echo "== Friendly match (form as rendered)"
+check "create-match form" 200 "$(get tf_m.jar /MyTeams/CreateMatch/$TA)"
+check "hidden Id is 0 for a new match" 0 "$(hidden Id)"
+TOK=$(token tf_m.jar /MyTeams/CreateMatch/$TA)
+check "save new match" 302 "$(post tf_m.jar /MyTeams/SaveMatch "$TOK" -d "Id=$(hidden Id)" -d "TeamId=$(hidden TeamId)" -d OpponentTeamId=$TB -d IsHome=true -d KickoffLocal=2026-12-20T17:00)"
+M=$(sql "SELECT Id FROM Matches WHERE OrganizerTeamId=$TA")
+check "match created" 1 "$(sql "SELECT COUNT(*) FROM Matches WHERE OrganizerTeamId=$TA")"
+check "edit-match form" 200 "$(get tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")"
+check "hidden Id is the match" "$M" "$(hidden Id)"
+TOK=$(token tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")
+check "save edit" 302 "$(post tf_m.jar /MyTeams/SaveMatch "$TOK" -d "Id=$(hidden Id)" -d "TeamId=$(hidden TeamId)" -d OpponentTeamId=$TB -d IsHome=false -d KickoffLocal=2026-12-21T18:00 -d Status=Scheduled --data-urlencode "RowVersion=$(hidden RowVersion)")"
+check "the right match was edited" "$TB/$TA" "$(sql "SELECT CONCAT(HomeTeamId,'/',AwayTeamId) FROM Matches WHERE Id=$M")"
+
+echo
+echo "RESULT: $PASS passed, $FAIL failed"

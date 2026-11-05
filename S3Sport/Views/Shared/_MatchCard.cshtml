@@ -31,12 +31,12 @@
             <div class="mc-competition text-truncate">@Model.CompetitionName @(Model.RoundName != null ? "· " + Model.RoundName : "")</div>
         }
         <div class="mc-team">
-            @Html.EntityLogo(Model.HomeLogo, Model.HomeName, 22)
+            @Html.EntityLogo(Model.HomeLogo, Model.HomeName, 28)
             <span class="text-truncate">@Model.HomeName</span>
             <span class="mc-score" data-home-score>@(Model.HasScore ? Model.HomeScore.ToString() : "")</span>
         </div>
         <div class="mc-team">
-            @Html.EntityLogo(Model.AwayLogo, Model.AwayName, 22)
+            @Html.EntityLogo(Model.AwayLogo, Model.AwayName, 28)
             <span class="text-truncate">@Model.AwayName</span>
             <span class="mc-score" data-away-score>@(Model.HasScore ? Model.AwayScore.ToString() : "")</span>
         </div>

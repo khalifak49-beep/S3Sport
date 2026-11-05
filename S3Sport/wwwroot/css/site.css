@@ -208,6 +208,8 @@ a { text-decoration: none; }
 
 /* ---------- Logos ---------- */
 .entity-logo { border-radius: 50%; object-fit: cover; background: var(--s3-surface-2); border: 1px solid var(--s3-border); flex-shrink: 0; }
+/* Crests (teams, competitions) are shown whole, like sports apps: no circle crop, no frame. */
+.entity-logo-crest { border-radius: 6px; object-fit: contain; background: transparent; border: 0; }
 .entity-logo-placeholder {
     display: inline-flex; align-items: center; justify-content: center; font-weight: 700;
     color: hsl(var(--hue), 65%, 45%); background: hsla(var(--hue), 70%, 50%, .14); border-color: hsla(var(--hue), 70%, 50%, .3);

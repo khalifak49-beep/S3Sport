@@ -132,7 +132,18 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             TeamName = await db.Teams.Where(t => t.Id == id).Select(t => t.NameAr).FirstOrDefaultAsync()
         };
         await PlayerHelper.FillListsAsync(db, model, includeTeams: false);
-        return View("PlayerEdit", model);
+        return FormView("PlayerEdit", model);
+    }
+
+    /// <summary>
+    /// Renders a form whose route {id} is the TEAM while the model's own Id is the player/match (0 when new).
+    /// Tag helpers prefer ModelState values over the model, and ModelState holds the bound route "id": without
+    /// clearing it the hidden Id field would carry the team id, so saving would target another record.
+    /// </summary>
+    private ViewResult FormView(string viewName, object model)
+    {
+        ModelState.Clear();
+        return View(viewName, model);
     }
 
     [HttpGet]
@@ -150,7 +161,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             TeamId = id, TeamName = tp.Team.NameAr, ShirtNumber = tp.ShirtNumber, IsCaptain = tp.IsCaptain
         };
         await PlayerHelper.FillListsAsync(db, model, includeTeams: false);
-        return View("PlayerEdit", model);
+        return FormView("PlayerEdit", model);
     }
 
     [HttpPost]
@@ -288,7 +299,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
     {
         if (!await db.CanManageTeamAsync(User, id)) return Forbid();
         var model = new TeamMatchFormViewModel { TeamId = id, KickoffLocal = DateTime.UtcNow.ToMuscat().Date.AddDays(1).AddHours(17) };
-        return View("MatchEdit", await FillMatchFormAsync(model));
+        return FormView("MatchEdit", await FillMatchFormAsync(model));
     }
 
     [HttpGet]
@@ -307,7 +318,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
                          || await db.MatchEvents.AnyAsync(e => e.MatchId == matchId),
             RowVersion = Convert.ToBase64String(m.RowVersion)
         };
-        return View("MatchEdit", await FillMatchFormAsync(model));
+        return FormView("MatchEdit", await FillMatchFormAsync(model));
     }
 
     [HttpPost]

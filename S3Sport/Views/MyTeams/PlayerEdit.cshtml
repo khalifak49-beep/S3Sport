@@ -8,7 +8,8 @@
         <form asp-action="SavePlayer" method="post" enctype="multipart/form-data" novalidate>
             <input type="hidden" asp-for="Id" />
             <input type="hidden" asp-for="RowVersion" />
-            <input type="hidden" asp-for="JoinedOn" />
+            @* ISO date: the Arabic culture's short date carries bidi marks that do not bind back. *@
+            <input type="hidden" name="@nameof(Model.JoinedOn)" value="@Model.JoinedOn?.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture)" />
             <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
             <partial name="_PlayerFormFields" model="Model" />
             <div class="d-flex gap-2 mt-4">

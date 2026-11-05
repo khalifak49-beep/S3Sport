@@ -64,14 +64,21 @@ public static partial class SlugHelper
 
 public static class HtmlHelperExtensions
 {
-    /// <summary>Team/entity logo, or a coloured initial badge when no logo was uploaded.</summary>
+    /// <summary>
+    /// Team/entity logo, or a coloured initial badge when no logo was uploaded.
+    /// Team and competition crests are shown whole (shields, badges); player photos are cropped to a circle.
+    /// </summary>
     public static Microsoft.AspNetCore.Html.IHtmlContent EntityLogo(this Microsoft.AspNetCore.Mvc.Rendering.IHtmlHelper html,
         string? path, string name, int size = 48)
     {
         var encodedName = System.Net.WebUtility.HtmlEncode(name);
         if (!string.IsNullOrEmpty(path))
+        {
+            var crest = path.StartsWith("/uploads/teams/", StringComparison.OrdinalIgnoreCase)
+                        || path.StartsWith("/uploads/competitions/", StringComparison.OrdinalIgnoreCase);
             return new Microsoft.AspNetCore.Html.HtmlString(
-                $"<img src=\"{System.Net.WebUtility.HtmlEncode(path)}\" alt=\"{encodedName}\" class=\"entity-logo\" style=\"width:{size}px;height:{size}px\" loading=\"lazy\" />");
+                $"<img src=\"{System.Net.WebUtility.HtmlEncode(path)}\" alt=\"{encodedName}\" class=\"entity-logo{(crest ? " entity-logo-crest" : "")}\" style=\"width:{size}px;height:{size}px\" loading=\"lazy\" />");
+        }
 
         var initial = System.Net.WebUtility.HtmlEncode(string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[..1]);
         // Stable across restarts (string.GetHashCode is randomised per process).

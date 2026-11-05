@@ -16,8 +16,8 @@
             @if (m.GroupName != null) { <span>· المجموعة @m.GroupName</span> }
         </div>
         <div class="scoreboard-row">
-            @if (m.HomeSlug != null) { <a class="sb-team text-reset" href="/teams/@m.HomeSlug">@Html.EntityLogo(m.HomeLogo, m.HomeName, 64)<span>@m.HomeName</span></a> }
-            else { <div class="sb-team">@Html.EntityLogo(m.HomeLogo, m.HomeName, 64)<span>@m.HomeName</span></div> }
+            @if (m.HomeSlug != null) { <a class="sb-team text-reset" href="/teams/@m.HomeSlug">@Html.EntityLogo(m.HomeLogo, m.HomeName, 72)<span>@m.HomeName</span></a> }
+            else { <div class="sb-team">@Html.EntityLogo(m.HomeLogo, m.HomeName, 72)<span>@m.HomeName</span></div> }
             <div class="sb-score">
                 @if (m.HasScore)
                 {
@@ -31,8 +31,8 @@
                 <div class="sb-status"><span data-status>@m.Status.GetDisplayName()</span> <span class="sb-minute d-none" data-minute></span></div>
                 @if (!m.HasScore) { <div class="small text-muted mt-1">@m.KickoffAt.ToMuscatString("dddd yyyy/MM/dd")</div> }
             </div>
-            @if (m.AwaySlug != null) { <a class="sb-team text-reset" href="/teams/@m.AwaySlug">@Html.EntityLogo(m.AwayLogo, m.AwayName, 64)<span>@m.AwayName</span></a> }
-            else { <div class="sb-team">@Html.EntityLogo(m.AwayLogo, m.AwayName, 64)<span>@m.AwayName</span></div> }
+            @if (m.AwaySlug != null) { <a class="sb-team text-reset" href="/teams/@m.AwaySlug">@Html.EntityLogo(m.AwayLogo, m.AwayName, 72)<span>@m.AwayName</span></a> }
+            else { <div class="sb-team">@Html.EntityLogo(m.AwayLogo, m.AwayName, 72)<span>@m.AwayName</span></div> }
         </div>
         <div class="d-flex justify-content-center gap-2 flex-wrap pb-3">
             <partial name="_FollowButton" model="Model.Follow" />

@@ -240,8 +240,8 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
         }
 
         if (model.VenueId != null && !await db.Venues.AnyAsync(v => v.Id == model.VenueId)) ModelState.AddModelError(nameof(model.VenueId), "الملعب غير صالح.");
-        if (!string.IsNullOrEmpty(model.OperatorUserId) && !(await OperatorOptionsAsync()).Any(o => o.Value == model.OperatorUserId))
-            ModelState.AddModelError(nameof(model.OperatorUserId), "المستخدم المختار لا يملك صلاحية تسجيل الأحداث.");
+        if (!string.IsNullOrEmpty(model.OperatorUserId) && !await CanBeOperatorAsync(model.OperatorUserId, model.HomeTeamId, model.AwayTeamId))
+            ModelState.AddModelError(nameof(model.OperatorUserId), "المستخدم المختار لا يملك صلاحية تسجيل الأحداث لهذه المباراة (مسؤول الفريق يسجّل مباريات فريقه فقط).");
 
         var hasEvents = existing != null && await db.MatchEvents.AnyAsync(e => e.MatchId == existing.Id && !e.IsCancelled);
         if (hasEvents && (existing!.HomeTeamId != model.HomeTeamId || existing.AwayTeamId != model.AwayTeamId))
@@ -289,13 +289,30 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
             .Select(e => new SelectListItem(e.Competition.NameAr + " — " + e.Season.Name, e.Id.ToString())).ToListAsync();
 
     /// <summary>Users who may record live events (operators, tournament managers, admins).</summary>
+    private static readonly string[] OperatorRoles = [AppRoles.MatchOperator, AppRoles.TournamentManager, AppRoles.Admin, AppRoles.SuperAdmin];
+
+    private IQueryable<ApplicationUser> UsersInRoles(params string[] roles) => db.Users.Where(u => u.IsActive
+        && db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && roles.Contains(r.Name!))));
+
+    /// <summary>Active managers (TeamManager role) of approved teams: the account that registered the team, plus any added later.</summary>
+    private IQueryable<TeamMember> TeamManagers() => db.TeamMembers.Where(x => x.IsActive && x.Role == TeamMemberRole.Manager
+        && x.Team.Status == TeamStatus.Approved && UsersInRoles(AppRoles.TeamManager).Any(u => u.Id == x.UserId));
+
+    /// <summary>Platform operators, then each team's manager labelled with the team, so the admin can hand a match to the team's owner.</summary>
     private async Task<List<SelectListItem>> OperatorOptionsAsync()
     {
-        string[] roles = [AppRoles.MatchOperator, AppRoles.TournamentManager, AppRoles.Admin, AppRoles.SuperAdmin];
-        return await db.Users.AsNoTracking()
-            .Where(u => u.IsActive && db.UserRoles.Any(ur => ur.UserId == u.Id && db.Roles.Any(r => r.Id == ur.RoleId && roles.Contains(r.Name!))))
-            .OrderBy(u => u.FullName).Select(u => new SelectListItem(u.FullName + " (" + u.Email + ")", u.Id)).ToListAsync();
+        var staff = await UsersInRoles(OperatorRoles).AsNoTracking().OrderBy(u => u.FullName)
+            .Select(u => new SelectListItem(u.FullName + " (" + u.Email + ")", u.Id)).ToListAsync();
+        var managers = await TeamManagers().AsNoTracking().OrderBy(x => x.Team.NameAr).ThenBy(x => x.User.FullName)
+            .Select(x => new { x.UserId, Label = "مسؤول فريق " + x.Team.NameAr + " — " + x.User.FullName + " (" + x.User.Email + ")" }).ToListAsync();
+        var staffIds = staff.Select(s => s.Value).ToHashSet();
+        return [.. staff, .. managers.Where(m => !staffIds.Contains(m.UserId)).Select(m => new SelectListItem(m.Label, m.UserId))];
     }
+
+    /// <summary>Platform operators may run any match; a team manager only matches of a team they manage.</summary>
+    private async Task<bool> CanBeOperatorAsync(string userId, int homeTeamId, int awayTeamId) =>
+        await UsersInRoles(OperatorRoles).AnyAsync(u => u.Id == userId)
+        || await TeamManagers().AnyAsync(x => x.UserId == userId && (x.TeamId == homeTeamId || x.TeamId == awayTeamId));
 
     private async Task<MatchFormViewModel> FillAsync(MatchFormViewModel model)
     {
