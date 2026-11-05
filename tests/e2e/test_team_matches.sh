@@ -10,7 +10,7 @@ uuid() { cat /proc/sys/kernel/random/uuid 2>/dev/null || powershell -NoProfile -
 ev() { local jar=$1 type=$2; shift 2; local tok=$(token $jar /Teams)
   local args=(-d EventType=$type -d ClientRequestId=$(uuid)); for kv in "$@"; do args+=(-d "$kv"); done
   post $jar /MatchControl/AddEvent/$M "$tok" "${args[@]}"; }
-register() { local tok=$(token $1 /Account/Register)
+register() { local tok=$(token $1 "/Account/Register?type=user")
   post $1 /Account/Register "$tok" -d "FullName=$(urlenc "$2")" -d Email=$3 -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null; }
 login() { local tok=$(token $1 /Account/Login); post $1 /Account/Login "$tok" -d Email=$2 --data-urlencode "Password=$3" > /dev/null; }
 notes() { sql "SELECT COUNT(*) FROM Notifications n JOIN AspNetUsers u ON u.Id=n.UserId WHERE u.Email='$FAN' AND n.MatchId=$M AND n.Type=$1"; }

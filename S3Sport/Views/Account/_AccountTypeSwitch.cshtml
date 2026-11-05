@@ -1,0 +1,6 @@
+@model string
+@* Sign-up type switch shown on both sign-up forms ("user" | "team"). *@
+<nav class="account-switch mb-4" aria-label="نوع الحساب">
+    <a class="@(Model == "user" ? "active" : "")" asp-action="Register" asp-route-type="user" aria-current="@(Model == "user" ? "page" : null)"><i class="fa-solid fa-user me-1"></i>مستخدم عادي</a>
+    <a class="@(Model == "team" ? "active" : "")" asp-action="RegisterTeam" aria-current="@(Model == "team" ? "page" : null)"><i class="fa-solid fa-shield-halved me-1"></i>فريق</a>
+</nav>

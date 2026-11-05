@@ -36,7 +36,7 @@ check "favorites requires login" 302 "$(get f_guest.jar /Favorites)"
 
 echo "== User in a different region (Dhofar) follows a Muscat team"
 EMAIL="fan$RANDOM@test.om"
-TOK=$(token f_user.jar /Account/Register)
+TOK=$(token f_user.jar "/Account/Register?type=user")
 post f_user.jar /Account/Register "$TOK" -d "FullName=$(urlenc "مشجع")" -d Email=$EMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 TOK=$(token f_user.jar /Region)
 post f_user.jar /Region "$TOK" -d GovernorateId=2 -d MakeDefault=true > /dev/null

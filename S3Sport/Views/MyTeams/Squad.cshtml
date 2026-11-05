@@ -47,6 +47,13 @@
                                                   data-confirm="إنهاء ارتباط @p.FullNameAr بالفريق؟" data-confirm-text="يصبح لاعباً حراً ويبقى سجله ومشاركاته محفوظة." data-confirm-danger>
                                                 <button class="btn btn-soft btn-sm text-danger" type="submit" title="إنهاء الارتباط"><i class="fa-solid fa-user-minus"></i></button>
                                             </form>
+                                            @if (p.Appearances == 0 && p.Goals == 0)
+                                            {
+                                                <form asp-action="DeletePlayer" asp-route-id="@Model.TeamId" asp-route-playerId="@p.Id" method="post"
+                                                      data-confirm="حذف @p.FullNameAr نهائياً؟" data-confirm-text="للاعب أُضيف بالخطأ وليس له أي مباريات. لا يمكن التراجع." data-confirm-danger>
+                                                    <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف اللاعب"><i class="fa-solid fa-trash"></i></button>
+                                                </form>
+                                            }
                                         </div>
                                     </td>
                                 </tr>

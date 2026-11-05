@@ -16,7 +16,7 @@ namespace S3Sport.Areas.Admin.Controllers;
 /// </summary>
 [Area("Admin")]
 [Authorize(Policy = AppPolicies.ManageCompetitions)]
-public class CompetitionsController(ApplicationDbContext db, IWebHostEnvironment env, UserManager<ApplicationUser> userManager) : Controller
+public class CompetitionsController(ApplicationDbContext db, IWebHostEnvironment env, UserManager<ApplicationUser> userManager, RoleRefresh roleRefresh) : Controller
 {
     public async Task<IActionResult> Index(string? search)
     {
@@ -140,6 +140,7 @@ public class CompetitionsController(ApplicationDbContext db, IWebHostEnvironment
         {
             await userManager.AddToRoleAsync(user, AppRoles.TournamentManager);
             await userManager.UpdateSecurityStampAsync(user);
+            roleRefresh.MarkChanged(user.Id);
         }
         TempData["Success"] = $"تم تعيين {user.FullName} مسؤولاً عن البطولة.";
         return RedirectToAction(nameof(Details), new { id });
@@ -160,6 +161,7 @@ public class CompetitionsController(ApplicationDbContext db, IWebHostEnvironment
         {
             await userManager.RemoveFromRoleAsync(user, AppRoles.TournamentManager);
             await userManager.UpdateSecurityStampAsync(user);
+            roleRefresh.MarkChanged(user.Id);
         }
         TempData["Success"] = "تمت إزالة المسؤول.";
         return RedirectToAction(nameof(Details), new { id });

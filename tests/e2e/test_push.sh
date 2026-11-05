@@ -8,7 +8,7 @@ for i in $(seq 1 60); do curl -s -o /dev/null $BASE/ && break; sleep 1; done
 R=$RANDOM
 MOCK=9555
 uuid() { cat /proc/sys/kernel/random/uuid 2>/dev/null || powershell -NoProfile -Command "[guid]::NewGuid().ToString()" | tr -d '\r'; }
-register() { local tok=$(token $1 /Account/Register)
+register() { local tok=$(token $1 "/Account/Register?type=user")
   post $1 /Account/Register "$tok" -d "FullName=$(urlenc "$2")" -d Email=$3 -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null; }
 login() { local tok=$(token $1 /Account/Login); post $1 /Account/Login "$tok" -d Email=$2 --data-urlencode "Password=$3" > /dev/null; }
 ev() { local tok=$(token pu_admin.jar /Teams); post pu_admin.jar /MatchControl/AddEvent/$M "$tok" -d EventType=$1 -d ClientRequestId=$(uuid) "${@:2}"; }
@@ -70,6 +70,9 @@ check "2 pushes reached the device" 2 "$(grep -c "/ok/$R" push_log.jsonl)"
 check "payload decrypted: kick-off title" 1 "$(grep "/ok/$R" push_log.jsonl | grep -c 'بدأت المباراة')"
 check "payload decrypted: goal title + url" 1 "$(grep "/ok/$R" push_log.jsonl | grep '⚽ هدف' | grep -c "\"url\":\"/matches/$M\"")"
 check "no decryption errors" 0 "$(grep -c '"error"' push_log.jsonl)"
+check "aes128gcm content coding (the only one Apple accepts)" 0 "$(grep "/ok/$R" push_log.jsonl | grep -vc '"encoding":"aes128gcm"')"
+check "VAPID JWT verifies (ES256 signature, aud, exp, sub)" 0 "$(grep "/ok/$R" push_log.jsonl | grep -vc '"jwtValid":true')"
+check "TTL header sent" 0 "$(grep "/ok/$R" push_log.jsonl | grep -vc '"ttl":"3600"')"
 check "signed with the server's VAPID key" 0 "$(grep "/ok/$R" push_log.jsonl | grep -vc "\"vapidKey\":\"$KEY\"")"
 check "VAPID JWT present" 0 "$(grep "/ok/$R" push_log.jsonl | grep -c '"hasJwt":false')"
 check "expired (410) subscription deleted" 0 "$(sql "SELECT COUNT(*) FROM PushSubscriptions WHERE Endpoint LIKE '%/gone/$R'")"

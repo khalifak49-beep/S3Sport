@@ -15,6 +15,7 @@ namespace S3Sport.Areas.Admin.Controllers;
 public class TeamsController(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
+    RoleRefresh roleRefresh,
     IWebHostEnvironment env) : Controller
 {
     [HttpGet]
@@ -249,7 +250,10 @@ public class TeamsController(
         await db.SaveChangesAsync();
 
         if (!await userManager.IsInRoleAsync(user, AppRoles.TeamManager))
+        {
             await userManager.AddToRoleAsync(user, AppRoles.TeamManager);
+            roleRefresh.MarkChanged(user.Id);
+        }
 
         TempData["Success"] = $"تمت إضافة {user.FullName} إلى إدارة الفريق.";
         return RedirectToAction(nameof(Edit), new { id });
@@ -268,7 +272,10 @@ public class TeamsController(
         // Drop the TeamManager role once the user no longer manages any team.
         if (!await db.TeamMembers.AnyAsync(m => m.UserId == member.UserId && m.IsActive)
             && await userManager.IsInRoleAsync(member.User, AppRoles.TeamManager))
+        {
             await userManager.RemoveFromRoleAsync(member.User, AppRoles.TeamManager);
+            roleRefresh.MarkChanged(member.UserId);
+        }
 
         TempData["Success"] = "تمت إزالة المسؤول من الفريق.";
         return RedirectToAction(nameof(Edit), new { id });

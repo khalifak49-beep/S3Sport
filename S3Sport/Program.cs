@@ -68,6 +68,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 // Role changes and deactivation update the security stamp; re-check it every minute
 // so those changes reach signed-in users quickly.
 builder.Services.Configure<SecurityStampValidatorOptions>(o => o.ValidationInterval = TimeSpan.FromMinutes(1));
+// Roles granted by someone else (team approval, admin role edits) reach the user on their next request.
+builder.Services.AddSingleton<RoleRefresh>();
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
@@ -125,6 +127,7 @@ builder.Services.AddSignalR(o => o.EnableDetailedErrors = builder.Environment.Is
 
 // ---------- Web Push (phone / desktop notifications while the site is closed) ----------
 builder.Services.AddSingleton<PushKeys>();
+builder.Services.AddHttpClient(nameof(PushWorker), c => c.Timeout = TimeSpan.FromSeconds(15));
 builder.Services.AddHostedService<PushWorker>();
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -150,6 +153,14 @@ var app = builder.Build();
 await DbInitializer.InitializeAsync(app.Services);
 
 // ---------- Pipeline ----------
+// Behind a reverse proxy or tunnel on this machine (e.g. Cloudflare Tunnel), the visitor's scheme and IP arrive in
+// X-Forwarded-Proto / X-Forwarded-For. Only loopback proxies are trusted (the framework default), so a client on
+// the internet cannot spoof them. Without this, HTTPS visitors look like plain HTTP: secure cookies and Web Push fail.
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseMigrationsEndPoint();
@@ -201,6 +212,7 @@ app.UseRequestLocalization();
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseRoleRefresh();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health");

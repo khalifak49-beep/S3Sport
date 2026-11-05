@@ -194,7 +194,17 @@ public class MyTeamViewModel
 public class MyTeamInfoViewModel
 {
     public int TeamId { get; set; }
+    [Required(ErrorMessage = "اسم الفريق بالعربية مطلوب")]
+    [StringLength(150, MinimumLength = 2, ErrorMessage = "الاسم يجب أن يكون بين 2 و150 حرفاً")]
+    [Display(Name = "اسم الفريق بالعربية")]
     public string NameAr { get; set; } = string.Empty;
+    [Required(ErrorMessage = "اسم الفريق بالإنجليزية مطلوب")]
+    [StringLength(150, MinimumLength = 2, ErrorMessage = "الاسم يجب أن يكون بين 2 و150 حرفاً")]
+    [RegularExpression(@"^[A-Za-z0-9 .'\-&]+$", ErrorMessage = "استخدم حروفاً إنجليزية وأرقاماً فقط")]
+    [Display(Name = "اسم الفريق بالإنجليزية")]
+    public string NameEn { get; set; } = string.Empty;
+    /// <summary>Name shown in the page title (the saved one, not the edited value).</summary>
+    public string CurrentName { get; set; } = string.Empty;
     [StringLength(30)][Display(Name = "الاسم المختصر")] public string? ShortName { get; set; }
     [StringLength(2000)][Display(Name = "نبذة عن الفريق")] public string? Description { get; set; }
     [StringLength(150), EmailAddress(ErrorMessage = "البريد غير صالح")][Display(Name = "البريد الإلكتروني للتواصل")] public string? ContactEmail { get; set; }

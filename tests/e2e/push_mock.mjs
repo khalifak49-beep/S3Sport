@@ -57,6 +57,20 @@ http.createServer((req, res) => {
         const authz = req.headers['authorization'] || '';
         entry.vapidKey = /k=([A-Za-z0-9_-]+)/.exec(authz)?.[1] || /p256ecdsa=([A-Za-z0-9_-]+)/.exec(req.headers['crypto-key'] || '')?.[1] || null;
         entry.hasJwt = /(vapid t=|WebPush )eyJ/.test(authz);
+        // Verify the VAPID JWT like a real push service: ES256 signature by key k, aud = push service origin, exp ≤ 24h, sub set.
+        try {
+            const jwt = /vapid t=([^,\s]+)/.exec(authz)[1];
+            const [h, c, s] = jwt.split('.');
+            const raw = fromB64u(entry.vapidKey);
+            const key = crypto.createPublicKey({ key: { kty: 'EC', crv: 'P-256', x: b64u(raw.subarray(1, 33)), y: b64u(raw.subarray(33, 65)) }, format: 'jwk' });
+            const sigOk = crypto.verify('sha256', Buffer.from(`${h}.${c}`), { key, dsaEncoding: 'ieee-p1363' }, fromB64u(s));
+            const claims = JSON.parse(fromB64u(c).toString());
+            const header = JSON.parse(fromB64u(h).toString());
+            const now = Date.now() / 1000;
+            entry.jwtValid = sigOk && header.alg === 'ES256' && claims.aud === `http://${req.headers.host}` && claims.exp > now && claims.exp <= now + 86400 && /^(mailto:|https:)/.test(claims.sub);
+            if (!entry.jwtValid) entry.jwtProblem = { sigOk, header, claims };
+        } catch (e) { entry.jwtValid = false; entry.jwtProblem = e.message; }
+        entry.ttl = req.headers['ttl'];
         try { entry.payload = JSON.parse(decrypt(req.headers, Buffer.concat(chunks))); } catch (e) { entry.error = e.message; }
         appendFileSync(join(out, 'push_log.jsonl'), JSON.stringify(entry) + '\n');
         res.writeHead(entry.status).end();

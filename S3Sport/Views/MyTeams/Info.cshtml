@@ -1,15 +1,17 @@
 @model MyTeamInfoViewModel
 @{
-    ViewData["Title"] = $"بيانات {Model.NameAr}";
+    ViewData["Title"] = $"بيانات {Model.CurrentName}";
 }
 <div class="s3-card mx-auto" style="max-width:820px">
     <div class="s3-card-header"><h2>@ViewData["Title"]</h2></div>
     <div class="s3-card-body">
-        <p class="text-muted small">اسم الفريق ومنطقته تُعدَّل عن طريق إدارة المنصة.</p>
+        <p class="text-muted small">منطقة الفريق تُعدَّل عن طريق إدارة المنصة، لأنها تحدد بطولات المنطقة التي يظهر فيها الفريق.</p>
         <form asp-action="Info" method="post" enctype="multipart/form-data" novalidate>
             <input type="hidden" asp-for="TeamId" />
             <input type="hidden" asp-for="RowVersion" />
             <div class="row g-3">
+                <div class="col-md-6"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /><span asp-validation-for="NameAr" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="NameEn" class="form-label"></label><input asp-for="NameEn" class="form-control ltr" autocapitalize="words" /><span asp-validation-for="NameEn" class="field-validation-error"></span></div>
                 <div class="col-md-6"><label asp-for="ShortName" class="form-label"></label><input asp-for="ShortName" class="form-control" /></div>
                 <div class="col-md-6"><label asp-for="PrimaryColor" class="form-label"></label><input asp-for="PrimaryColor" type="color" class="form-control form-control-color w-100" value="@(Model.PrimaryColor ?? "#1cc683")" /></div>
                 <div class="col-md-6"><label asp-for="ContactEmail" class="form-label"></label><input asp-for="ContactEmail" class="form-control ltr" /><span asp-validation-for="ContactEmail" class="field-validation-error"></span></div>

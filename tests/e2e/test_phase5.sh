@@ -63,7 +63,7 @@ sql "UPDATE Teams SET Status=1 WHERE Id=$TS" > /dev/null
 
 echo "== Follow player / competition / match"
 EMAIL="p5fan$R@test.om"
-TOK=$(token p5_fan.jar /Account/Register)
+TOK=$(token p5_fan.jar "/Account/Register?type=user")
 post p5_fan.jar /Account/Register "$TOK" -d "FullName=$(urlenc مشجع)" -d Email=$EMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 FAN=$(sql "SELECT Id FROM AspNetUsers WHERE Email='$EMAIL'")
 TOK=$(token p5_fan.jar /Teams)
@@ -83,7 +83,7 @@ check "follow non-existent player → 404" 404 "$(TOK=$(token p5_fan.jar /Teams)
 
 echo "== News: permissions, YouTube validation, publish → followers notified"
 CMAIL="cm$R@test.om"
-TOK=$(token p5_cm.jar /Account/Register)
+TOK=$(token p5_cm.jar "/Account/Register?type=user")
 post p5_cm.jar /Account/Register "$TOK" -d "FullName=$(urlenc محرر)" -d Email=$CMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 check "plain user: admin news denied" DENIED "$(denied $(get p5_cm.jar /Admin/News))"
 CMID=$(sql "SELECT Id FROM AspNetUsers WHERE Email='$CMAIL'")

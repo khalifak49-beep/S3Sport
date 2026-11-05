@@ -36,6 +36,7 @@
         </div>
         <div class="d-flex justify-content-center gap-2 flex-wrap pb-3">
             <partial name="_FollowButton" model="Model.Follow" />
+            <button type="button" class="btn btn-soft btn-icon" data-sound-toggle aria-pressed="true" title="أصوات المباراة"><i class="fa-solid fa-volume-high"></i></button>
             @if (Model.CanOperate)
             {
                 <a class="btn btn-soft" asp-controller="MatchControl" asp-action="Index" asp-route-id="@m.Id"><i class="fa-solid fa-tower-broadcast me-1"></i>شاشة التسجيل</a>

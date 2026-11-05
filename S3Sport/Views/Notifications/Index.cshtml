@@ -20,6 +20,29 @@
     </div>
 </div>
 
+<div class="s3-card mb-3">
+    <div class="s3-card-body">
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <span class="stat-icon" style="width:42px;height:42px;font-size:1.1rem"><i class="fa-solid fa-volume-high"></i></span>
+            <div class="flex-grow-1 small">
+                <div class="fw-semibold">أصوات المباراة</div>
+                تُسمع والموقع مفتوح: صفارة للبداية ونهاية الأشواط، وصوت احتفال للهدف. والموقع مغلق يستخدم الجوال صوت الإشعار المعتاد.
+            </div>
+            <button type="button" class="btn btn-soft" data-sound-toggle aria-pressed="true"><i class="fa-solid fa-volume-high me-1"></i><span data-sound-label>الصوت مفعّل</span></button>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="kickoff">▶️ صافرة البداية</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="halftime">⏸️ نهاية الشوط</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="fulltime">🏁 نهاية المباراة</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="goal">⚽ هدف</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="card">🟨 بطاقة</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="red">🟥 طرد</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="miss">❌ جزاء ضائع</button>
+            <button type="button" class="btn btn-soft btn-sm" data-sound-test="sub">🔄 تبديل</button>
+        </div>
+    </div>
+</div>
+
 <div class="s3-card">
     @if (Model.TotalCount == 0)
     {

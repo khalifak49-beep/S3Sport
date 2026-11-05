@@ -5,8 +5,9 @@
 <div class="auth-wrap">
     <div class="s3-card">
         <div class="s3-card-body">
-            <h1 class="h4 fw-bold mb-1">إنشاء حساب جديد</h1>
-            <p class="text-muted mb-4">تابع فرق منطقتك وسجّل فريقك في المنصة</p>
+            <partial name="_AccountTypeSwitch" model="@("user")" />
+            <h1 class="h4 fw-bold mb-1">حساب مستخدم</h1>
+            <p class="text-muted mb-4">تابع فرق منطقتك ومبارياتها، وتصلك إشعارات الأهداف والنتائج.</p>
             <form asp-action="Register" method="post" novalidate>
                 <input type="hidden" asp-for="ReturnUrl" />
                 <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>

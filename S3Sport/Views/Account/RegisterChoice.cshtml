@@ -1,0 +1,34 @@
+@model string?
+@{
+    ViewData["Title"] = "إنشاء حساب";
+    var returnUrl = Model;
+}
+<div class="auth-wrap" style="max-width:560px">
+    <div class="text-center mb-4">
+        <h1 class="h4 fw-bold mb-1">إنشاء حساب جديد</h1>
+        <p class="text-muted mb-0">اختر نوع الحساب</p>
+    </div>
+
+    <div class="d-grid gap-3">
+        <a class="s3-card account-type text-reset" asp-action="Register" asp-route-type="user" asp-route-returnUrl="@returnUrl">
+            <span class="account-type-icon"><i class="fa-solid fa-user"></i></span>
+            <span class="flex-grow-1">
+                <span class="d-block fw-bold fs-5">مستخدم عادي</span>
+                <span class="d-block small text-muted">تابع الفرق والمباريات، وتصلك إشعارات الأهداف والنتائج مباشرة.</span>
+            </span>
+            <i class="fa-solid fa-chevron-left text-muted"></i>
+        </a>
+        <a class="s3-card account-type text-reset" asp-action="RegisterTeam">
+            <span class="account-type-icon is-team"><i class="fa-solid fa-shield-halved"></i></span>
+            <span class="flex-grow-1">
+                <span class="d-block fw-bold fs-5">فريق</span>
+                <span class="d-block small text-muted">سجّل فريقك وأدِر لاعبيه ومبارياته وسجّلها مباشرة لمتابعيك. يُنشر الفريق بعد موافقة إدارة المنصة.</span>
+            </span>
+            <i class="fa-solid fa-chevron-left text-muted"></i>
+        </a>
+    </div>
+
+    <p class="text-center text-muted mt-4 mb-0">
+        لديك حساب؟ <a asp-action="Login" asp-route-returnUrl="@returnUrl">سجّل الدخول</a>
+    </p>
+</div>

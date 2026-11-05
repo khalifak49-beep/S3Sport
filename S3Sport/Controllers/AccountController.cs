@@ -13,6 +13,7 @@ public class AccountController(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
     SignInManager<ApplicationUser> signInManager,
+    IWebHostEnvironment env,
     ILogger<AccountController> logger) : Controller
 {
     [HttpGet, AllowAnonymous]
@@ -57,11 +58,116 @@ public class AccountController(
         return LocalRedirect(SafeReturnUrl(model.ReturnUrl));
     }
 
+    /// <summary>
+    /// Sign-up starts with a choice: a regular user (follows teams and matches) or a team (account + team application).
+    /// <paramref name="type"/> = "user" shows the user form directly; "team" goes to the team sign-up.
+    /// </summary>
     [HttpGet, AllowAnonymous]
-    public IActionResult Register(string? returnUrl = null)
+    public IActionResult Register(string? type = null, string? returnUrl = null)
     {
         if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Index", "Home");
+        if (type == "team") return RedirectToAction(nameof(RegisterTeam));
+        if (type != "user") return View("RegisterChoice", returnUrl);
         return View(new RegisterViewModel { ReturnUrl = returnUrl });
+    }
+
+    [HttpGet, AllowAnonymous]
+    public async Task<IActionResult> RegisterTeam()
+    {
+        if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Create", "TeamApplications");
+        var model = new RegisterTeamViewModel();
+        var region = CurrentRegion.FromRequest(Request);
+        if (region != null)
+        {
+            model.GovernorateId = region.GovernorateId;
+            model.WilayatId = region.WilayatId ?? 0;
+            model.AreaId = region.AreaId;
+            model.VillageId = region.VillageId;
+        }
+        await TeamFormHelper.FillListsAsync(db, model);
+        return View(model);
+    }
+
+    /// <summary>
+    /// Creates the manager's account and submits the team application in one transaction: either both exist
+    /// afterwards or neither does. The team itself is created when the platform approves the application.
+    /// </summary>
+    [HttpPost, AllowAnonymous]
+    [RequestSizeLimit(4 * 1024 * 1024)]
+    public async Task<IActionResult> RegisterTeam(RegisterTeamViewModel model)
+    {
+        if (User.Identity?.IsAuthenticated == true) return RedirectToAction("Create", "TeamApplications");
+
+        await TeamFormHelper.ValidateApplicationAsync(db, model, ModelState, applicantUserId: null, logoRequired: true);
+        var email = model.Email.Trim();
+        if (!string.IsNullOrEmpty(email) && await userManager.FindByEmailAsync(email) != null)
+            ModelState.AddModelError(nameof(model.Email), "هذا البريد مسجل مسبقاً. سجّل الدخول ثم قدّم طلب الفريق من حسابك.");
+        var user = new ApplicationUser
+        {
+            UserName = email, Email = email, FullName = model.FullName.Trim(),
+            PhoneNumber = string.IsNullOrWhiteSpace(model.ContactPhone) ? null : model.ContactPhone.Trim(), IsActive = true
+        };
+        // Password rules are checked up front so every error shows at once and no logo is stored for nothing.
+        if (!string.IsNullOrEmpty(model.Password))
+            foreach (var validator in userManager.PasswordValidators)
+                foreach (var error in (await validator.ValidateAsync(userManager, user, model.Password)).Errors)
+                    ModelState.AddModelError(nameof(model.Password), error.Description);
+        if (!ModelState.IsValid)
+        {
+            await TeamFormHelper.FillListsAsync(db, model);
+            return View(model);
+        }
+
+        var logoPath = await FileUploadHelper.SaveImageAsync(model.Logo!, env, "teams");
+        TeamApplication? application = null;
+        try
+        {
+            await db.InTransactionAsync(async () =>
+            {
+                var created = await userManager.CreateAsync(user, model.Password);
+                if (!created.Succeeded) throw new SignUpRejectedException(created);
+                var role = await userManager.AddToRoleAsync(user, AppRoles.User);
+                if (!role.Succeeded) throw new SignUpRejectedException(role);
+
+                application = new TeamApplication
+                {
+                    ApplicantUserId = user.Id, SportId = SeedData.FootballSportId, Status = TeamStatus.Pending,
+                    SubmittedAt = DateTime.UtcNow, LogoPath = logoPath
+                };
+                TeamFormHelper.MapApplication(model, application);
+                db.TeamApplications.Add(application);
+                // The team's region becomes the new account's default region.
+                if (model.AreaId != null)
+                    db.UserAreas.Add(new UserArea { UserId = user.Id, GovernorateId = model.GovernorateId, WilayatId = model.WilayatId, AreaId = model.AreaId, IsDefault = true });
+                await db.SaveChangesAsync();
+                db.AddAudit(HttpContext, "تسجيل حساب فريق وتقديم طلب", nameof(TeamApplication), application.Id, application.NameAr);
+                await db.SaveChangesAsync();
+            });
+        }
+        catch (SignUpRejectedException ex)
+        {
+            FileUploadHelper.Delete(env, logoPath);
+            db.ChangeTracker.Clear();
+            foreach (var error in ex.Result.Errors) ModelState.AddModelError(string.Empty, error.Description);
+            await TeamFormHelper.FillListsAsync(db, model);
+            return View(model);
+        }
+        catch
+        {
+            FileUploadHelper.Delete(env, logoPath);
+            throw;
+        }
+
+        await signInManager.SignInAsync(user, isPersistent: false);
+        logger.LogInformation("New team account registered: {Email} ({Team})", user.Email, application!.NameAr);
+        TempData["Success"] = $"مرحباً {user.FullName}، تم إنشاء حسابك وإرسال طلب تسجيل «{application.NameAr}» للمراجعة. يصلك إشعار عند الموافقة.";
+        return RedirectToAction("Details", "TeamApplications", new { id = application.Id });
+    }
+
+    /// <summary>Identity refused the account inside the sign-up transaction: roll everything back.</summary>
+    private sealed class SignUpRejectedException(IdentityResult result) : Exception("Sign-up rejected")
+    {
+        public IdentityResult Result { get; } = result;
     }
 
     [HttpPost, AllowAnonymous]

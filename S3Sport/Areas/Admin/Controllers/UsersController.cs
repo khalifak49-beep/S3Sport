@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using S3Sport.Data;
+using S3Sport.Infrastructure;
 using S3Sport.Models;
 using S3Sport.ViewModels;
 
@@ -11,7 +12,7 @@ namespace S3Sport.Areas.Admin.Controllers;
 
 [Area("Admin")]
 [Authorize(Policy = AppPolicies.AdminAccess)]
-public class UsersController(ApplicationDbContext db, UserManager<ApplicationUser> userManager) : Controller
+public class UsersController(ApplicationDbContext db, UserManager<ApplicationUser> userManager, RoleRefresh roleRefresh) : Controller
 {
     /// <summary>Roles only a SuperAdmin may grant or revoke.</summary>
     private static readonly string[] ProtectedRoles = [AppRoles.SuperAdmin, AppRoles.Admin];
@@ -86,8 +87,10 @@ public class UsersController(ApplicationDbContext db, UserManager<ApplicationUse
 
         if (toAdd.Count + toRemove.Count > 0)
         {
-            // Force the user's cookie to pick up the new roles on their next request.
+            // Other sessions are invalidated (new stamp); the user's current session is re-issued with the new roles
+            // on their next request instead of being signed out.
             await userManager.UpdateSecurityStampAsync(user);
+            roleRefresh.MarkChanged(user.Id);
             db.AddAudit(HttpContext, "تعديل صلاحيات مستخدم", "User", user.Id,
                 $"{user.Email} | +{string.Join(",", toAdd)} | -{string.Join(",", toRemove)}");
             await db.SaveChangesAsync();

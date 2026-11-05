@@ -41,7 +41,7 @@ M=$(sql "SELECT Id FROM Matches WHERE CompetitionSeasonId=$ED")
 [ -n "$M" ] && ok "match $M scheduled" || bad "match scheduled"
 sql "UPDATE Matches SET HomeTeamId=$TH, AwayTeamId=$TA WHERE Id=$M" > /dev/null  # fix orientation for readable asserts
 
-mkuser() { local jar=$1 email=$2; local tok=$(token $jar /Account/Register)
+mkuser() { local jar=$1 email=$2; local tok=$(token $jar "/Account/Register?type=user")
   post $jar /Account/Register "$tok" -d "FullName=$(urlenc "مستخدم $R")" -d Email=$email -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null; }
 OP="op$R@test.om"; OP2="op2$R@test.om"; FAN="fan$R@test.om"
 mkuser p4_op.jar $OP; mkuser p4_op2.jar $OP2; mkuser p4_fan.jar $FAN

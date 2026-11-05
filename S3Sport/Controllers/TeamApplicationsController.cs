@@ -170,44 +170,11 @@ public class TeamApplicationsController(ApplicationDbContext db, IWebHostEnviron
 
     // ---------- helpers ----------
 
-    private async Task ValidateAsync(TeamApplicationFormViewModel model, bool logoRequired, int? ignoreApplicationId = null)
-    {
-        // Returns the cleaned typed area name, or null when an existing area is used (it may also pick
-        // the existing area automatically if the typed name matches one).
-        model.ProposedAreaName = await TeamFormHelper.ValidateRegionAsync(db, model, ModelState);
-        await TeamFormHelper.ValidateAdditionalAreasAsync(db, model, ModelState);
-        TeamFormHelper.ValidateLogo(model, ModelState, logoRequired);
+    private Task ValidateAsync(TeamApplicationFormViewModel model, bool logoRequired, int? ignoreApplicationId = null) =>
+        TeamFormHelper.ValidateApplicationAsync(db, model, ModelState, UserId, logoRequired, ignoreApplicationId);
 
-        var name = model.NameAr.Trim();
-        if (model.AreaId != null && await db.Teams.AnyAsync(t => t.NameAr == name && t.TeamAreas.Any(ta => ta.AreaId == model.AreaId)))
-            ModelState.AddModelError(nameof(model.NameAr), "يوجد فريق مسجل بنفس الاسم في هذه المنطقة.");
-        if (await db.TeamApplications.AnyAsync(a => a.Id != ignoreApplicationId && a.Status == TeamStatus.Pending
-                && a.NameAr == name && a.WilayatId == model.WilayatId))
-            ModelState.AddModelError(nameof(model.NameAr), "يوجد طلب قيد المراجعة لفريق بنفس الاسم في هذه الولاية.");
-        if (ignoreApplicationId == null && await db.TeamApplications.CountAsync(a => a.ApplicantUserId == UserId && a.Status == TeamStatus.Pending) >= 3)
-            ModelState.AddModelError(string.Empty, "لديك 3 طلبات قيد المراجعة. انتظر مراجعتها قبل تقديم طلب جديد.");
-    }
-
-    private void Map(TeamApplicationFormViewModel model, TeamApplication application)
-    {
-        application.NameAr = model.NameAr.Trim();
-        application.NameEn = model.NameEn.Trim();
-        application.FoundedYear = model.FoundedYear;
-        application.Description = model.Description?.Trim();
-        application.ContactPhone = model.ContactPhone.Trim();
-        application.ContactEmail = model.ContactEmail?.Trim();
-        application.GovernorateId = model.GovernorateId;
-        application.WilayatId = model.WilayatId;
-        application.AreaId = model.AreaId;
-        application.ProposedAreaName = model.AreaId == null ? model.ProposedAreaName : null;
-        application.VillageId = model.VillageId;
-
-        // Diff instead of clear+add: re-adding the same composite key in one context would conflict.
-        foreach (var removed in application.AdditionalAreas.Where(x => !model.AdditionalAreaIds.Contains(x.AreaId)).ToList())
-            application.AdditionalAreas.Remove(removed);
-        foreach (var areaId in model.AdditionalAreaIds.Where(id => application.AdditionalAreas.All(x => x.AreaId != id)))
-            application.AdditionalAreas.Add(new TeamApplicationArea { AreaId = areaId });
-    }
+    private static void Map(TeamApplicationFormViewModel model, TeamApplication application) =>
+        TeamFormHelper.MapApplication(model, application);
 
     private Task<TeamApplicationDetailsViewModel?> LoadDetailsAsync(int id) =>
         db.TeamApplications.AsNoTracking()

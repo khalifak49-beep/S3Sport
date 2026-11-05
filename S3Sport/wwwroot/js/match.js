@@ -80,10 +80,24 @@
         }
     };
 
+    // Events already on screen; only events that arrive while the page is open make a sound.
+    const heard = new Set(state.events.map(e => e.id));
+    const newEventTypes = s => {
+        const fresh = s.events.filter(e => !e.isCancelled && !heard.has(e.id));
+        s.events.forEach(e => heard.add(e.id));
+        return fresh.map(e => e.type);
+    };
+
     const apply = s => {
         if (!s || s.matchId !== matchId) { return; }
-        // Kick-off while the page is open: reload once to switch from the fixture view to the live scoreboard.
-        if (initialStatus !== s.status && (initialStatus === 'Scheduled' || initialStatus === 'Postponed')) { location.reload(); return; }
+        const types = newEventTypes(s);
+        S3.sound?.forEvents(types);
+        // Kick-off while the page is open: reload once to switch from the fixture view to the live scoreboard
+        // (after the whistle has been heard).
+        if (initialStatus !== s.status && (initialStatus === 'Scheduled' || initialStatus === 'Postponed')) {
+            setTimeout(() => location.reload(), types.length && S3.sound?.enabled() ? 1200 : 0);
+            return;
+        }
         state = s;
         render();
     };

@@ -93,6 +93,9 @@
     });
     conn.on('lineupChanged', e => document.dispatchEvent(new CustomEvent('s3:lineupChanged', { detail: e })));
     conn.on('notification', n => {
+        // The open page of that same match already plays the event's sound from the live state.
+        const onThatMatch = matchPage && n.url === `/matches/${matchPage.dataset.matchPage}`;
+        if (!onThatMatch) { S3.sound?.forNotification(n); }
         const bell = document.querySelector('.bell');
         if (bell) {
             let count = bell.querySelector('.count');

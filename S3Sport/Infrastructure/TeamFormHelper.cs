@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using S3Sport.Data;
+using S3Sport.Models;
 using S3Sport.ViewModels;
 
 namespace S3Sport.Infrastructure;
@@ -92,5 +93,52 @@ public static class TeamFormHelper
         }
         var error = FileUploadHelper.ValidateImage(model.Logo);
         if (error != null) modelState.AddModelError(nameof(model.Logo), error);
+    }
+
+    /// <summary>
+    /// Full validation of a team application (region, logo, duplicate names, pending-request limit).
+    /// Shared by the "register a team" sign-up and the signed-in application form. <paramref name="applicantUserId"/>
+    /// is null for a brand-new account (it has no earlier requests).
+    /// </summary>
+    public static async Task ValidateApplicationAsync(ApplicationDbContext db, TeamApplicationFormViewModel model, ModelStateDictionary modelState,
+        string? applicantUserId, bool logoRequired, int? ignoreApplicationId = null)
+    {
+        // Returns the cleaned typed area name, or null when an existing area is used (it may also pick
+        // the existing area automatically if the typed name matches one).
+        model.ProposedAreaName = await ValidateRegionAsync(db, model, modelState);
+        await ValidateAdditionalAreasAsync(db, model, modelState);
+        ValidateLogo(model, modelState, logoRequired);
+
+        var name = model.NameAr.Trim();
+        if (model.AreaId != null && await db.Teams.AnyAsync(t => t.NameAr == name && t.TeamAreas.Any(ta => ta.AreaId == model.AreaId)))
+            modelState.AddModelError(nameof(model.NameAr), "يوجد فريق مسجل بنفس الاسم في هذه المنطقة.");
+        if (await db.TeamApplications.AnyAsync(a => a.Id != ignoreApplicationId && a.Status == TeamStatus.Pending
+                && a.NameAr == name && a.WilayatId == model.WilayatId))
+            modelState.AddModelError(nameof(model.NameAr), "يوجد طلب قيد المراجعة لفريق بنفس الاسم في هذه الولاية.");
+        if (applicantUserId != null && ignoreApplicationId == null
+            && await db.TeamApplications.CountAsync(a => a.ApplicantUserId == applicantUserId && a.Status == TeamStatus.Pending) >= 3)
+            modelState.AddModelError(string.Empty, "لديك 3 طلبات قيد المراجعة. انتظر مراجعتها قبل تقديم طلب جديد.");
+    }
+
+    /// <summary>Copies the form into the application entity (additional areas are diffed, not replaced).</summary>
+    public static void MapApplication(TeamApplicationFormViewModel model, TeamApplication application)
+    {
+        application.NameAr = model.NameAr.Trim();
+        application.NameEn = model.NameEn.Trim();
+        application.FoundedYear = model.FoundedYear;
+        application.Description = model.Description?.Trim();
+        application.ContactPhone = model.ContactPhone.Trim();
+        application.ContactEmail = model.ContactEmail?.Trim();
+        application.GovernorateId = model.GovernorateId;
+        application.WilayatId = model.WilayatId;
+        application.AreaId = model.AreaId;
+        application.ProposedAreaName = model.AreaId == null ? model.ProposedAreaName : null;
+        application.VillageId = model.VillageId;
+
+        // Diff instead of clear+add: re-adding the same composite key in one context would conflict.
+        foreach (var removed in application.AdditionalAreas.Where(x => !model.AdditionalAreaIds.Contains(x.AreaId)).ToList())
+            application.AdditionalAreas.Remove(removed);
+        foreach (var areaId in model.AdditionalAreaIds.Where(id => application.AdditionalAreas.All(x => x.AreaId != id)))
+            application.AdditionalAreas.Add(new TeamApplicationArea { AreaId = areaId });
     }
 }

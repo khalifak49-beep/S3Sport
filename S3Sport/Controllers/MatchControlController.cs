@@ -439,10 +439,10 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
         var who = ev?.Player != null ? $"{ev.Player} — {ev.Team}" : ev?.Team;
         (NotificationType Type, string Title, string? Message)? n = type switch
         {
-            MatchEventType.MatchStarted => (NotificationType.MatchStarted, $"بدأت المباراة: {info.Home} × {info.Away}", null),
-            MatchEventType.FirstHalfEnded => (NotificationType.HalfTime, $"نهاية الشوط الأول: {score}", null),
-            MatchEventType.SecondHalfStarted => (NotificationType.SecondHalfStarted, $"بداية الشوط الثاني: {score}", null),
-            MatchEventType.MatchEnded => (NotificationType.MatchEnded, $"انتهت المباراة: {score}",
+            MatchEventType.MatchStarted => (NotificationType.MatchStarted, $"▶️ بدأت المباراة: {info.Home} × {info.Away}", null),
+            MatchEventType.FirstHalfEnded => (NotificationType.HalfTime, $"⏸️ نهاية الشوط الأول: {score}", null),
+            MatchEventType.SecondHalfStarted => (NotificationType.SecondHalfStarted, $"▶️ بداية الشوط الثاني: {score}", null),
+            MatchEventType.MatchEnded => (NotificationType.MatchEnded, $"🏁 انتهت المباراة: {score}",
                 info.HomePenaltyScore != null ? $"ركلات الترجيح: {info.HomePenaltyScore} - {info.AwayPenaltyScore}" : null),
             MatchEventType.Goal => (NotificationType.Goal, $"⚽ هدف! {score}", who + minute),
             MatchEventType.PenaltyGoal => (NotificationType.Goal, $"⚽ هدف من ركلة جزاء! {score}", who + minute),

@@ -44,7 +44,7 @@ check "player details page" 200 "$(get p3_admin.jar /Admin/Players/Details/$P1)"
 
 echo "== Team manager isolation"
 TMEMAIL="mgr$R@test.om"
-TOK=$(token p3_mgr.jar /Account/Register)
+TOK=$(token p3_mgr.jar "/Account/Register?type=user")
 post p3_mgr.jar /Account/Register "$TOK" -d "FullName=$(urlenc "مدير فريق")" -d Email=$TMEMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 TOK=$(token p3_admin.jar /Admin/Teams/Edit/${TEAMS[2]})
 post p3_admin.jar /Admin/Teams/AddMember/${TEAMS[2]} "$TOK" -d email=$TMEMAIL -d role=Manager > /dev/null
@@ -208,7 +208,7 @@ check "top seeds (byes) do not meet in semis" 0 "$(sql "SELECT COUNT(*) FROM Mat
 
 echo "== Tournament-manager scoping"
 TMAIL="tm$R@test.om"
-TOK=$(token p3_tm.jar /Account/Register)
+TOK=$(token p3_tm.jar "/Account/Register?type=user")
 post p3_tm.jar /Account/Register "$TOK" -d "FullName=$(urlenc "مسؤول بطولة")" -d Email=$TMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 TOK=$(token p3_admin.jar /Admin/Competitions/Details/$COMP)
 check "assign TM to league" 302 "$(post p3_admin.jar /Admin/Competitions/AddManager/$COMP "$TOK" -d email=$TMAIL)"

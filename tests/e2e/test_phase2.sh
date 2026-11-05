@@ -10,7 +10,7 @@ echo "== Public pages"
 check "home" 200 "$(get guest.jar /)"
 check "region page" 200 "$(get guest.jar /Region)"
 check "login page" 200 "$(get guest.jar /Account/Login)"
-check "register page" 200 "$(get guest.jar /Account/Register)"
+check "register page" 200 "$(get guest.jar "/Account/Register?type=user")"
 check "404 page" 404 "$(get guest.jar /does-not-exist)"
 grep -q "الصفحة غير موجودة" body.html && ok "404 is Arabic" || bad "404 is Arabic"
 
@@ -39,10 +39,10 @@ check "post without token rejected" 400 "$(curl -s -o /dev/null -w '%{http_code}
 
 echo "== Register"
 EMAIL="player$RANDOM@test.om"
-TOK=$(token user.jar /Account/Register)
+TOK=$(token user.jar "/Account/Register?type=user")
 check "register weak password" 200 "$(post user.jar /Account/Register "$TOK" -d "FullName=$(urlenc تجربة)" -d Email=$EMAIL -d Password=abc -d ConfirmPassword=abc)"
 grep -q "8 أحرف" body.html && ok "Arabic validation message" || bad "Arabic validation message"
-TOK=$(token user.jar /Account/Register)
+TOK=$(token user.jar "/Account/Register?type=user")
 check "register ok" 302 "$(post user.jar /Account/Register "$TOK" -d "FullName=$(urlenc "سالم المعمري")" -d Email=$EMAIL -d Password=Test@1234 -d ConfirmPassword=Test@1234)"
 grep -q "/Region" location && ok "new user without region → region page" || bad "redirect: $(cat location)"
 check "user has User role" 1 "$(sql "SELECT COUNT(*) FROM AspNetUserRoles ur JOIN AspNetRoles r ON r.Id=ur.RoleId JOIN AspNetUsers u ON u.Id=ur.UserId WHERE u.Email='$EMAIL' AND r.Name='User'")"
@@ -81,7 +81,7 @@ check "own application visible" 200 "$(get user.jar /TeamApplications/Details/$A
 
 echo "== Other user cannot see it"
 EMAIL2="other$RANDOM@test.om"
-TOK=$(token other.jar /Account/Register)
+TOK=$(token other.jar "/Account/Register?type=user")
 post other.jar /Account/Register "$TOK" -d "FullName=$(urlenc "مستخدم آخر")" -d Email=$EMAIL2 -d Password=Test@1234 -d ConfirmPassword=Test@1234 > /dev/null
 check "other user → 404" 404 "$(get other.jar /TeamApplications/Details/$APP)"
 

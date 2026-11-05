@@ -1,0 +1,58 @@
+@model RegisterTeamViewModel
+@{
+    ViewData["Title"] = "تسجيل فريق";
+}
+<div class="auth-wrap" style="max-width:820px">
+    <div class="s3-card">
+        <div class="s3-card-body">
+            <partial name="_AccountTypeSwitch" model="@("team")" />
+            <h1 class="h4 fw-bold mb-1">تسجيل فريق</h1>
+            <p class="text-muted mb-4">أنشئ حساب مسؤول الفريق وأرسل بيانات الفريق في خطوة واحدة. بعد موافقة إدارة المنصة يُنشر الفريق وتديره من «إدارة فريقي».</p>
+
+            <form asp-action="RegisterTeam" method="post" enctype="multipart/form-data" novalidate>
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+
+                <h2 class="section-title"><span class="step-badge">1</span>حساب مسؤول الفريق</h2>
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" autocomplete="name" />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" type="email" class="form-control ltr" autocomplete="email" inputmode="email" autocapitalize="none" />
+                        <span asp-validation-for="Email" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control ltr" autocomplete="new-password" />
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-md-6">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" class="form-control ltr" autocomplete="new-password" />
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-12 form-text mt-1">8 أحرف على الأقل، وتحتوي على رقم واحد على الأقل.</div>
+                </div>
+
+                <h2 class="section-title"><span class="step-badge">2</span>بيانات الفريق</h2>
+                <partial name="_TeamFormFields" model="Model" />
+                <div class="row g-3 mt-0">
+                    <div class="col-md-6">
+                        <label asp-for="ContactPhone" class="form-label"></label>
+                        <input asp-for="ContactPhone" type="tel" class="form-control ltr" placeholder="9XXXXXXX" autocomplete="tel" inputmode="tel" />
+                        <span asp-validation-for="ContactPhone" class="field-validation-error"></span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 py-2 mt-4"><i class="fa-solid fa-paper-plane me-1"></i>إنشاء الحساب وإرسال الطلب</button>
+            </form>
+            <p class="text-center text-muted mt-4 mb-0">
+                لديك حساب؟ <a asp-action="Login" asp-route-returnUrl="/TeamApplications/Create">سجّل الدخول وقدّم الطلب من حسابك</a>
+            </p>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

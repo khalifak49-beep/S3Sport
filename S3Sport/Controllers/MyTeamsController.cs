@@ -64,7 +64,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
         if (t == null) return NotFound();
         return View(new MyTeamInfoViewModel
         {
-            TeamId = t.Id, NameAr = t.NameAr, ShortName = t.ShortName, Description = t.Description, ContactEmail = t.ContactEmail,
+            TeamId = t.Id, NameAr = t.NameAr, NameEn = t.NameEn, CurrentName = t.NameAr, ShortName = t.ShortName, Description = t.Description, ContactEmail = t.ContactEmail,
             SocialUrl = t.SocialUrl, PrimaryColor = t.PrimaryColor, LogoPath = t.LogoPath, RowVersion = Convert.ToBase64String(t.RowVersion)
         });
     }
@@ -77,9 +77,14 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
         var team = await db.Teams.FirstOrDefaultAsync(t => t.Id == model.TeamId);
         if (team == null) return NotFound();
         if (model.Logo is { Length: > 0 } && FileUploadHelper.ValidateImage(model.Logo) is { } err) ModelState.AddModelError(nameof(model.Logo), err);
+        // Same rule as team applications: no two teams with one name in the same area. The slug (page URL) stays.
+        var newName = model.NameAr?.Trim() ?? "";
+        if (newName != team.NameAr && await db.Teams.AnyAsync(t => t.Id != team.Id && t.NameAr == newName
+                && t.TeamAreas.Any(ta => db.TeamAreas.Any(mine => mine.TeamId == team.Id && mine.AreaId == ta.AreaId))))
+            ModelState.AddModelError(nameof(model.NameAr), "يوجد فريق آخر بنفس الاسم في منطقة فريقك.");
         if (!ModelState.IsValid)
         {
-            model.NameAr = team.NameAr;
+            model.CurrentName = team.NameAr;
             model.LogoPath = team.LogoPath;
             return View(model);
         }
@@ -91,12 +96,16 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             oldLogo = team.LogoPath;
             team.LogoPath = await FileUploadHelper.SaveImageAsync(model.Logo, env, "teams");
         }
+        var oldName = team.NameAr;
+        team.NameAr = newName;
+        team.NameEn = model.NameEn.Trim();
         team.ShortName = model.ShortName?.Trim();
         team.Description = model.Description?.Trim();
         team.ContactEmail = model.ContactEmail?.Trim();
         team.SocialUrl = model.SocialUrl?.Trim();
         team.PrimaryColor = model.PrimaryColor;
-        db.AddAudit(HttpContext, "تحديث بيانات الفريق (مسؤول الفريق)", nameof(Team), team.Id, team.NameAr);
+        db.AddAudit(HttpContext, "تحديث بيانات الفريق (مسؤول الفريق)", nameof(Team), team.Id,
+            oldName != team.NameAr ? $"{oldName} ← {team.NameAr}" : team.NameAr);
         try
         {
             await db.SaveChangesAsync();
@@ -214,6 +223,41 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             await db.SaveChangesAsync();
         });
         if (error != null) TempData["Error"] = error; else TempData["Success"] = "تم إنهاء ارتباط اللاعب. يبقى سجله ومشاركاته محفوظة.";
+        return RedirectToAction(nameof(Squad), new { id });
+    }
+
+    /// <summary>
+    /// Deletes a player the team added by mistake. Only possible while the player has no record anywhere
+    /// (match events, lineups, best-player awards, another team): otherwise the player's history and other teams'
+    /// statistics depend on it, and the manager ends the player's membership instead (ReleasePlayer).
+    /// Soft delete: the row stays for referential integrity and is hidden everywhere.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> DeletePlayer(int id, int playerId)
+    {
+        if (!await db.CanManageTeamAsync(User, id)) return Forbid();
+        var player = await db.Players.FirstOrDefaultAsync(p => p.Id == playerId && p.TeamPlayers.Any(tp => tp.TeamId == id && tp.IsActive));
+        if (player == null) return NotFound();
+
+        var hasHistory = await db.MatchEvents.AnyAsync(e => e.PlayerId == playerId || e.RelatedPlayerId == playerId)
+                         || await db.MatchLineups.AnyAsync(l => l.PlayerId == playerId)
+                         || await db.MatchReports.AnyAsync(r => r.BestPlayerId == playerId)
+                         || await db.TeamPlayers.AnyAsync(tp => tp.PlayerId == playerId && tp.TeamId != id);
+        if (hasHistory)
+        {
+            TempData["Error"] = $"لا يمكن حذف {player.FullNameAr} لأن له سجلاً في المباريات أو مع فريق آخر. أنهِ ارتباطه بالفريق بدلاً من ذلك، ويبقى سجله محفوظاً.";
+            return RedirectToAction(nameof(Squad), new { id });
+        }
+
+        await db.InTransactionAsync(async () =>
+        {
+            await db.TeamPlayers.Where(tp => tp.PlayerId == playerId).ExecuteDeleteAsync();
+            await db.UserFollows.Where(f => f.PlayerId == playerId).ExecuteDeleteAsync();
+            db.Players.Remove(player); // soft delete
+            db.AddAudit(HttpContext, "حذف لاعب (مسؤول الفريق)", nameof(Player), playerId, player.FullNameAr);
+            await db.SaveChangesAsync();
+        });
+        TempData["Success"] = $"تم حذف {player.FullNameAr}.";
         return RedirectToAction(nameof(Squad), new { id });
     }
 

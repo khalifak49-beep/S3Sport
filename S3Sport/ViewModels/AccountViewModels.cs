@@ -53,6 +53,36 @@ public class RegisterViewModel
     public string? ReturnUrl { get; set; }
 }
 
+/// <summary>
+/// Sign-up as a team: the account (manager) plus the team application in one form.
+/// The account becomes the team manager once the platform approves the application.
+/// </summary>
+public class RegisterTeamViewModel : TeamApplicationFormViewModel
+{
+    [Required(ErrorMessage = "اسم مسؤول الفريق مطلوب")]
+    [StringLength(150, MinimumLength = 3, ErrorMessage = "الاسم يجب أن يكون بين 3 و150 حرفاً")]
+    [Display(Name = "اسم مسؤول الفريق")]
+    public string FullName { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "البريد الإلكتروني مطلوب")]
+    [EmailAddress(ErrorMessage = "البريد الإلكتروني غير صالح")]
+    [StringLength(150)]
+    [Display(Name = "البريد الإلكتروني (للدخول)")]
+    public string Email { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "كلمة المرور مطلوبة")]
+    [StringLength(100, MinimumLength = 8, ErrorMessage = "كلمة المرور يجب ألا تقل عن 8 أحرف")]
+    [DataType(DataType.Password)]
+    [Display(Name = "كلمة المرور")]
+    public string Password { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "تأكيد كلمة المرور مطلوب")]
+    [DataType(DataType.Password)]
+    [Compare(nameof(Password), ErrorMessage = "كلمتا المرور غير متطابقتين")]
+    [Display(Name = "تأكيد كلمة المرور")]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
 public class ProfileViewModel
 {
     [Required(ErrorMessage = "الاسم الكامل مطلوب")]

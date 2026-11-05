@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#0a0f1c" />
     <meta name="robots" content="noindex" />
+    <link rel="icon" href="~/favicon.ico" sizes="48x48" />
     <title>@ViewData["Title"] | إدارة S3Sport</title>
     <script>
         try { var t = localStorage.getItem('s3s-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-bs-theme', t); } catch (e) { }
@@ -28,7 +29,7 @@
     <aside class="admin-sidebar offcanvas-lg offcanvas-start" tabindex="-1" id="adminSidebar" aria-label="قائمة الإدارة">
         <div class="d-flex align-items-center justify-content-between p-3 border-bottom">
             <a class="brand" asp-area="Admin" asp-controller="@(isAdmin ? "Dashboard" : canCompetitions ? "Competitions" : "News")" asp-action="Index">
-                <span class="brand-mark">S3</span><span>لوحة <span class="accent">الإدارة</span></span>
+                <img class="brand-icon" src="~/icons/icon-192.png" width="36" height="36" alt="S3Sport" /><span>لوحة <span class="accent">الإدارة</span></span>
             </a>
             <button type="button" class="btn-close d-lg-none" data-bs-dismiss="offcanvas" data-bs-target="#adminSidebar" aria-label="إغلاق"></button>
         </div>

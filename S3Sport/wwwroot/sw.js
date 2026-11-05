@@ -3,7 +3,7 @@
 // - Pages: network-first (scores must be fresh), falling back to the cached copy, then to /offline.html.
 // - Never cached: SignalR (/hubs), admin and operator screens, POSTs, JSON state endpoints, uploads.
 // - Web Push: shows the notifications PushWorker sends (see js/push.js for the subscription).
-const CACHE_VERSION = 's3sport-v1';
+const CACHE_VERSION = 's3sport-v2';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const PRECACHE = [
@@ -11,6 +11,7 @@ const PRECACHE = [
     '/css/site.css',
     '/js/site.js',
     '/js/live.js',
+    '/js/sounds.js',
     '/lib/bootstrap/dist/css/bootstrap.rtl.min.css',
     '/lib/bootstrap/dist/js/bootstrap.bundle.min.js',
     '/lib/fontawesome/css/all.min.css',
@@ -68,15 +69,26 @@ self.addEventListener('fetch', event => {
 });
 
 // Web Push (VAPID) — payload: { title, message, url }.
+// A notification is always shown (iOS revokes subscriptions whose pushes show nothing). When the site is open and
+// visible, it is shown silently: the page plays its own match sound (whistle, goal…) instead of the system sound.
 self.addEventListener('push', event => {
     const data = event.data ? event.data.json() : {};
-    event.waitUntil(self.registration.showNotification(data.title || 'S3Sport', {
-        body: data.message || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', dir: 'rtl', lang: 'ar',
-        data: { url: data.url || '/' }
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+        const visible = windows.some(w => w.visibilityState === 'visible');
+        return self.registration.showNotification(data.title || 'S3Sport', {
+            body: data.message || '', icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', dir: 'rtl', lang: 'ar',
+            silent: visible, data: { url: data.url || '/' }
+        });
     }));
 });
 
+// Tapping a notification reuses an open window of the app when there is one.
 self.addEventListener('notificationclick', event => {
     event.notification.close();
-    event.waitUntil(self.clients.openWindow(event.notification.data?.url || '/'));
+    const url = new URL(event.notification.data?.url || '/', self.location.origin).href;
+    event.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(windows => {
+        const open = windows.find(w => new URL(w.url).origin === self.location.origin);
+        if (open) { return open.navigate(url).then(w => (w || open).focus()).catch(() => self.clients.openWindow(url)); }
+        return self.clients.openWindow(url);
+    }));
 });

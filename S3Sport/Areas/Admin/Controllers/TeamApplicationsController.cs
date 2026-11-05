@@ -15,6 +15,7 @@ namespace S3Sport.Areas.Admin.Controllers;
 public class TeamApplicationsController(
     ApplicationDbContext db,
     UserManager<ApplicationUser> userManager,
+    RoleRefresh roleRefresh,
     ILogger<TeamApplicationsController> logger) : Controller
 {
     [HttpGet]
@@ -76,6 +77,7 @@ public class TeamApplicationsController(
     {
         var reviewerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         Team? team = null;
+        string? applicantId = null;
         try
         {
             await db.InTransactionAsync(async () =>
@@ -83,6 +85,7 @@ public class TeamApplicationsController(
                 db.ChangeTracker.Clear();
                 var app = await db.TeamApplications.Include(a => a.AdditionalAreas).FirstOrDefaultAsync(a => a.Id == id)
                     ?? throw new InvalidOperationException("الطلب غير موجود.");
+                applicantId = app.ApplicantUserId;
                 if (app.Status != TeamStatus.Pending)
                     throw new InvalidOperationException("تمت مراجعة هذا الطلب مسبقاً.");
                 db.SetOriginalRowVersion(app, rowVersion, a => a.RowVersion);
@@ -123,8 +126,8 @@ public class TeamApplicationsController(
 
                 db.AddNotification(app.ApplicantUserId, NotificationType.TeamApplication,
                     $"تمت الموافقة على تسجيل فريق {app.NameAr}",
-                    "أصبح فريقك منشوراً في المنصة ويمكنك الآن إدارته.",
-                    $"/TeamApplications/Details/{app.Id}", teamId: team.Id);
+                    "أصبح فريقك منشوراً في المنصة. اضغط لإدارة لاعبيه ومبارياته.",
+                    $"/MyTeams/Squad/{team.Id}", teamId: team.Id);
                 db.AddAudit(HttpContext, "اعتماد طلب فريق", nameof(TeamApplication), app.Id, $"{app.NameAr} → فريق #{team.Id}");
                 await db.SaveChangesAsync();
 
@@ -149,6 +152,8 @@ public class TeamApplicationsController(
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // The applicant gets the team-manager permissions on their very next request (no re-login needed).
+        roleRefresh.MarkChanged(applicantId!);
         logger.LogInformation("Team application {Id} approved, team {TeamId} created.", id, team!.Id);
         TempData["Success"] = $"تم اعتماد الفريق «{team.NameAr}» ونشره في المنصة.";
         return RedirectToAction(nameof(Details), new { id });
