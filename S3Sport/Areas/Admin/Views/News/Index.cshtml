@@ -1,0 +1,56 @@
+@model NewsListViewModel
+@{
+    ViewData["Title"] = "الأخبار والوسائط";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث في العناوين..." />
+            <select name="category" class="form-select" data-autosubmit aria-label="التصنيف">
+                <option value="">كل التصنيفات</option>
+                @foreach (var c in Enum.GetValues<NewsCategory>()) { <option value="@c" selected="@(Model.Category == c)">@c.GetDisplayName()</option> }
+            </select>
+            <select name="published" class="form-select" data-autosubmit aria-label="الحالة">
+                <option value="">كل الحالات</option>
+                <option value="true" selected="@(Model.Published == true)">منشور</option>
+                <option value="false" selected="@(Model.Published == false)">مسودة</option>
+            </select>
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>خبر جديد</a>
+    </div>
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-regular fa-newspaper d-block"></i><p class="mb-0">لا توجد أخبار.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>الخبر</th><th>التصنيف</th><th>مرتبط بـ</th><th>النشر</th><th>المشاهدات</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var n in Model.Results.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold text-truncate" style="max-width:340px">@n.Title</td>
+                            <td>@n.Category.GetDisplayName()</td>
+                            <td class="small">@(n.TeamName ?? n.CompetitionName ?? "—")</td>
+                            <td>@if (n.IsPublished) { <span class="badge text-bg-success">@n.PublishedAt.ToMuscatString("MM/dd HH:mm")</span> } else { <span class="badge text-bg-secondary">مسودة</span> }</td>
+                            <td>@n.ViewCount</td>
+                            <td>
+                                <div class="table-actions">
+                                    @if (n.IsPublished) { <a class="btn btn-soft btn-sm" href="/news/@n.Slug" target="_blank" title="عرض"><i class="fa-regular fa-eye"></i></a> }
+                                    <a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@n.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                                    <form asp-action="Delete" asp-route-id="@n.Id" method="post" data-confirm="حذف الخبر؟" data-confirm-danger>
+                                        <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

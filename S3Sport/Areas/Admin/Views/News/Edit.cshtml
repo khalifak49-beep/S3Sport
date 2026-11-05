@@ -1,0 +1,69 @@
+@model NewsFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "خبر جديد" : "تعديل خبر";
+}
+<form asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="RowVersion" />
+    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+    <div class="row g-4">
+        <div class="col-xl-8">
+            <div class="s3-card">
+                <div class="s3-card-body">
+                    <div class="mb-3"><label asp-for="TitleAr" class="form-label"></label><input asp-for="TitleAr" class="form-control form-control-lg" /><span asp-validation-for="TitleAr" class="field-validation-error"></span></div>
+                    <div class="mb-3"><label asp-for="Summary" class="form-label"></label><textarea asp-for="Summary" class="form-control" rows="2" maxlength="500"></textarea></div>
+                    <div class="mb-3"><label asp-for="Body" class="form-label"></label><textarea asp-for="Body" class="form-control" rows="12"></textarea><span asp-validation-for="Body" class="field-validation-error"></span>
+                        <div class="form-text">نص عادي؛ الأسطر الفارغة تفصل الفقرات.</div></div>
+                    <div class="mb-3"><label asp-for="VideoUrl" class="form-label"></label><input asp-for="VideoUrl" class="form-control ltr" placeholder="https://www.youtube.com/watch?v=..." /><span asp-validation-for="VideoUrl" class="field-validation-error"></span></div>
+                    <div class="mb-3">
+                        <label asp-for="Gallery" class="form-label"></label>
+                        <input asp-for="Gallery" type="file" multiple class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" />
+                        <span asp-validation-for="Gallery" class="field-validation-error"></span>
+                        <div class="form-text">حتى 12 صورة، 2 ميجابايت لكل صورة.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-4">
+            <div class="s3-card mb-3">
+                <div class="s3-card-body">
+                    <div class="mb-3"><label asp-for="Category" class="form-label"></label><select asp-for="Category" asp-items="Html.GetEnumSelectList<NewsCategory>()" class="form-select"></select></div>
+                    <div class="mb-3"><label asp-for="TeamId" class="form-label"></label><select asp-for="TeamId" asp-items="Model.Teams" class="form-select"><option value="">—</option></select></div>
+                    <div class="mb-3"><label asp-for="PlayerId" class="form-label"></label><select asp-for="PlayerId" asp-items="Model.Players" class="form-select"><option value="">—</option></select></div>
+                    <div class="mb-3"><label asp-for="CompetitionId" class="form-label"></label><select asp-for="CompetitionId" asp-items="Model.Competitions" class="form-select"><option value="">—</option></select></div>
+                    <div class="mb-3"><label asp-for="MatchId" class="form-label"></label><select asp-for="MatchId" asp-items="Model.Matches" class="form-select"><option value="">—</option></select></div>
+                    <div class="mb-3">
+                        <label asp-for="Cover" class="form-label"></label>
+                        <img id="coverPreview" src="@Model.CoverImagePath" alt="" class="w-100 rounded mb-2 @(Model.CoverImagePath == null ? "d-none" : "")" style="max-height:180px;object-fit:cover" />
+                        <input asp-for="Cover" type="file" class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" data-preview="#coverPreview" />
+                        <span asp-validation-for="Cover" class="field-validation-error"></span>
+                    </div>
+                    <div class="form-check form-switch mb-1"><input asp-for="IsPublished" class="form-check-input" role="switch" /><label asp-for="IsPublished" class="form-check-label"></label></div>
+                    <div class="form-text">عند النشر لأول مرة يُرسل إشعار لمتابعي الفريق أو اللاعب أو البطولة المرتبطة.</div>
+                </div>
+            </div>
+            <div class="d-grid gap-2">
+                <button class="btn btn-primary btn-lg" type="submit">حفظ</button>
+                <a class="btn btn-soft" asp-action="Index">رجوع</a>
+            </div>
+        </div>
+    </div>
+</form>
+@if (Model.ExistingMedia.Count > 0)
+{
+    <div class="s3-card mt-4">
+        <div class="s3-card-header"><h2>معرض الصور (@Model.ExistingMedia.Count)</h2></div>
+        <div class="s3-card-body news-gallery">
+            @foreach (var m in Model.ExistingMedia)
+            {
+                <div class="position-relative">
+                    <img src="@m.Path" alt="" />
+                    <form asp-action="DeleteMedia" asp-route-id="@Model.Id" asp-route-mediaId="@m.Id" method="post" class="position-absolute top-0 start-0 m-1" data-confirm="حذف الصورة؟" data-confirm-danger>
+                        <button class="btn btn-sm btn-danger" type="submit" aria-label="حذف"><i class="fa-solid fa-xmark"></i></button>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+}
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

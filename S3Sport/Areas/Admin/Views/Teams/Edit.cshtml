@@ -1,0 +1,117 @@
+@model TeamEditViewModel
+@{
+    var isNew = Model.Id == 0;
+    ViewData["Title"] = isNew ? "إضافة فريق" : $"تعديل فريق: {Model.NameAr}";
+}
+
+<div class="row g-4">
+    <div class="@(isNew ? "col-12" : "col-xl-8")">
+        <div class="s3-card">
+            <div class="s3-card-header">
+                <h2>بيانات الفريق</h2>
+                @if (!isNew) { <span class="small text-muted ltr">/@Model.Slug</span> }
+            </div>
+            <div class="s3-card-body">
+                <form asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+                    <input type="hidden" asp-for="Id" />
+                    <input type="hidden" asp-for="RowVersion" />
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+
+                    <partial name="_TeamFormFields" model="Model" />
+
+                    <div class="row g-3 mt-0">
+                        @if (Model.ExistingLogoPath != null)
+                        {
+                            <div class="col-12">
+                                <div class="form-check">
+                                    <input asp-for="RemoveLogo" class="form-check-input" />
+                                    <label asp-for="RemoveLogo" class="form-check-label"></label>
+                                </div>
+                            </div>
+                        }
+                        <div class="col-md-4">
+                            <label asp-for="ShortName" class="form-label"></label>
+                            <input asp-for="ShortName" class="form-control" />
+                            <span asp-validation-for="ShortName" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ContactPhone" class="form-label"></label>
+                            <input asp-for="ContactPhone" class="form-control ltr" />
+                            <span asp-validation-for="ContactPhone" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PrimaryColor" class="form-label"></label>
+                            <input asp-for="PrimaryColor" type="color" class="form-control form-control-color w-100" value="@(Model.PrimaryColor ?? "#1cc683")" />
+                            <span asp-validation-for="PrimaryColor" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label asp-for="SocialUrl" class="form-label"></label>
+                            <input asp-for="SocialUrl" class="form-control ltr" placeholder="https://" />
+                            <span asp-validation-for="SocialUrl" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Status" class="form-label"></label>
+                            <select asp-for="Status" class="form-select">
+                                <option value="@TeamStatus.Approved">@TeamStatus.Approved.GetDisplayName()</option>
+                                <option value="@TeamStatus.Suspended">@TeamStatus.Suspended.GetDisplayName()</option>
+                            </select>
+                            <span asp-validation-for="Status" class="field-validation-error"></span>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-4">
+                        <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i>حفظ</button>
+                        <a class="btn btn-soft" asp-action="Index">رجوع</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    @if (!isNew)
+    {
+        <div class="col-xl-4">
+            <div class="s3-card">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-user-tie me-1"></i>مسؤولو الفريق</h2></div>
+                @if (Model.Members.Count == 0)
+                {
+                    <div class="s3-card-body text-muted">لا يوجد مسؤولون لهذا الفريق.</div>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var m in Model.Members)
+                        {
+                            <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                                <div class="flex-grow-1 min-w-0">
+                                    <div class="fw-semibold text-truncate">@m.FullName</div>
+                                    <div class="small text-muted text-truncate">@m.Role.GetDisplayName() · <span class="ltr">@m.Email</span></div>
+                                </div>
+                                <form asp-action="RemoveMember" asp-route-id="@Model.Id" asp-route-memberId="@m.Id" method="post"
+                                      data-confirm="إزالة المسؤول من الفريق؟" data-confirm-text="@m.FullName" data-confirm-danger>
+                                    <button type="submit" class="btn btn-soft btn-sm text-danger" title="إزالة"><i class="fa-solid fa-user-minus"></i></button>
+                                </form>
+                            </li>
+                        }
+                    </ul>
+                }
+                <div class="s3-card-body border-top">
+                    <form asp-action="AddMember" asp-route-id="@Model.Id" method="post">
+                        <label for="memberEmail" class="form-label">إضافة مسؤول بالبريد الإلكتروني</label>
+                        <input id="memberEmail" name="email" type="email" class="form-control ltr mb-2" required placeholder="user@example.com" />
+                        <select name="role" class="form-select mb-2" aria-label="الدور">
+                            @foreach (var r in Enum.GetValues<TeamMemberRole>())
+                            {
+                                <option value="@r">@r.GetDisplayName()</option>
+                            }
+                        </select>
+                        <button type="submit" class="btn btn-soft w-100"><i class="fa-solid fa-user-plus me-1"></i>إضافة</button>
+                        <div class="form-text">يجب أن يكون للمستخدم حساب مسجل في المنصة. يُمنح دور "مسؤول فريق" تلقائياً.</div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

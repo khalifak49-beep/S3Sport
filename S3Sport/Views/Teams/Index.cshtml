@@ -1,0 +1,49 @@
+@model TeamDirectoryViewModel
+@{
+    ViewData["Title"] = "الفرق";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="page-title">الفرق</h1>
+        <p class="page-subtitle">
+            @if (Model.AllRegions) { <text>جميع الفرق المعتمدة في سلطنة عُمان</text> }
+            else { <text>فرق منطقتك: <strong class="text-body">@Model.RegionName</strong></text> }
+        </p>
+    </div>
+    @if (Model.HasRegion)
+    {
+        <div class="status-tabs" role="tablist" aria-label="نطاق العرض">
+            <a asp-action="Index" asp-route-q="@Model.Search" class="@(!Model.AllRegions ? "active" : "")" role="tab" aria-selected="@(!Model.AllRegions)">منطقتي</a>
+            <a asp-action="Index" asp-route-q="@Model.Search" asp-route-all="true" class="@(Model.AllRegions ? "active" : "")" role="tab" aria-selected="@Model.AllRegions">كل المناطق</a>
+        </div>
+    }
+</div>
+
+<form method="get" class="filter-bar mb-4">
+    @if (Model.AllRegions && Model.HasRegion) { <input type="hidden" name="all" value="true" /> }
+    <input type="search" name="q" value="@Model.Search" class="form-control search" placeholder="ابحث باسم الفريق أو الولاية أو المنطقة..." aria-label="بحث" />
+    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass me-1"></i>بحث</button>
+</form>
+
+@if (Model.Results.TotalCount == 0)
+{
+    <div class="s3-card empty-state">
+        <i class="fa-solid fa-shield-halved d-block"></i>
+        <p class="mb-3">@(string.IsNullOrWhiteSpace(Model.Search) ? "لا توجد فرق معتمدة هنا بعد." : "لا توجد فرق مطابقة لبحثك.")</p>
+        @if (!Model.AllRegions)
+        {
+            <a class="btn btn-soft" asp-action="Index" asp-route-q="@Model.Search" asp-route-all="true">ابحث في كل المناطق</a>
+        }
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var team in Model.Results.Items)
+        {
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3"><partial name="_TeamCard" model="team" /></div>
+        }
+    </div>
+    <div class="s3-card mt-3 pager-standalone"><partial name="_Pager" model="Model.Results" /></div>
+}

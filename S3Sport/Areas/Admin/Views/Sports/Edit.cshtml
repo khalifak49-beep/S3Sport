@@ -1,0 +1,64 @@
+@model SportFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "إضافة رياضة" : $"تعديل: {Model.NameAr}";
+}
+<div class="row g-4">
+    <div class="col-xl-7">
+        <div class="s3-card">
+            <div class="s3-card-header"><h2>بيانات الرياضة</h2></div>
+            <div class="s3-card-body">
+                <form asp-action="Save" method="post" novalidate>
+                    <input type="hidden" asp-for="Id" />
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /><span asp-validation-for="NameAr" class="field-validation-error"></span></div>
+                        <div class="col-md-6"><label asp-for="NameEn" class="form-label"></label><input asp-for="NameEn" class="form-control ltr" /><span asp-validation-for="NameEn" class="field-validation-error"></span></div>
+                        <div class="col-md-6"><label asp-for="Code" class="form-label"></label><input asp-for="Code" class="form-control ltr" placeholder="football" /><span asp-validation-for="Code" class="field-validation-error"></span></div>
+                        <div class="col-md-6"><label asp-for="IconClass" class="form-label"></label><input asp-for="IconClass" class="form-control ltr" placeholder="fa-solid fa-futbol" /></div>
+                        <div class="col-md-4"><label asp-for="PlayersOnField" class="form-label"></label><input asp-for="PlayersOnField" class="form-control" /><span asp-validation-for="PlayersOnField" class="field-validation-error"></span></div>
+                        <div class="col-md-4"><label asp-for="PeriodsCount" class="form-label"></label><input asp-for="PeriodsCount" class="form-control" /><span asp-validation-for="PeriodsCount" class="field-validation-error"></span></div>
+                        <div class="col-md-4"><label asp-for="PeriodDurationMinutes" class="form-label"></label><input asp-for="PeriodDurationMinutes" class="form-control" /><span asp-validation-for="PeriodDurationMinutes" class="field-validation-error"></span></div>
+                        <div class="col-4"><label asp-for="PointsForWin" class="form-label"></label><input asp-for="PointsForWin" class="form-control" /></div>
+                        <div class="col-4"><label asp-for="PointsForDraw" class="form-label"></label><input asp-for="PointsForDraw" class="form-control" /></div>
+                        <div class="col-4"><label asp-for="PointsForLoss" class="form-label"></label><input asp-for="PointsForLoss" class="form-control" /></div>
+                        <div class="col-12"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" role="switch" /><label asp-for="IsActive" class="form-check-label"></label></div></div>
+                    </div>
+                    <p class="form-text mt-3">قيم النقاط هي الافتراضية لأي بطولة جديدة، ويمكن تغييرها لكل بطولة حسب لائحتها.</p>
+                    <div class="d-flex gap-2 mt-3">
+                        <button class="btn btn-primary" type="submit">حفظ</button>
+                        <a class="btn btn-soft" asp-action="Index">رجوع</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    @if (Model.Id != 0)
+    {
+        <div class="col-xl-5">
+            <div class="s3-card">
+                <div class="s3-card-header"><h2>مراكز اللعب</h2></div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var p in Model.Positions)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                            <span class="badge text-bg-secondary ltr">@p.Code</span>
+                            <span class="flex-grow-1">@p.NameAr <span class="text-muted small ltr">@p.NameEn</span></span>
+                            <form asp-action="DeletePosition" asp-route-id="@Model.Id" asp-route-positionId="@p.Id" method="post" data-confirm="حذف المركز؟" data-confirm-danger>
+                                <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                            </form>
+                        </li>
+                    }
+                </ul>
+                <div class="s3-card-body border-top">
+                    <form asp-action="AddPosition" asp-route-id="@Model.Id" method="post" class="row g-2">
+                        <div class="col-5"><input name="nameAr" class="form-control" placeholder="الاسم بالعربية" required maxlength="60" /></div>
+                        <div class="col-4"><input name="nameEn" class="form-control ltr" placeholder="English" required maxlength="60" /></div>
+                        <div class="col-3"><input name="code" class="form-control ltr" placeholder="GK" required maxlength="10" /></div>
+                        <div class="col-12"><button class="btn btn-soft w-100" type="submit"><i class="fa-solid fa-plus me-1"></i>إضافة مركز</button></div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

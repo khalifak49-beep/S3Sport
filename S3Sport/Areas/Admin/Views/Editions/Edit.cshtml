@@ -1,0 +1,50 @@
+@model EditionFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? $"نسخة جديدة — {Model.CompetitionName}" : $"إعدادات النسخة — {Model.CompetitionName}";
+    var criteria = Enum.GetValues<TieBreakerCriterion>();
+}
+<div class="s3-card mx-auto" style="max-width:900px">
+    <div class="s3-card-header"><h2>@ViewData["Title"]</h2></div>
+    <div class="s3-card-body">
+        <form asp-action="Save" method="post" novalidate>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="CompetitionId" />
+            <input type="hidden" asp-for="RowVersion" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+            <div class="row g-3">
+                <div class="col-md-4"><label asp-for="SeasonId" class="form-label"></label><select asp-for="SeasonId" asp-items="Model.Seasons" class="form-select"><option value="0">اختر الموسم</option></select><span asp-validation-for="SeasonId" class="field-validation-error"></span></div>
+                <div class="col-md-4"><label asp-for="Format" class="form-label"></label><select asp-for="Format" asp-items="Html.GetEnumSelectList<CompetitionFormat>()" class="form-select"></select><span asp-validation-for="Format" class="field-validation-error"></span></div>
+                <div class="col-md-4"><label asp-for="Status" class="form-label"></label><select asp-for="Status" asp-items="Html.GetEnumSelectList<CompetitionSeasonStatus>()" class="form-select"></select></div>
+                <div class="col-md-6"><label asp-for="StartDate" class="form-label"></label><input asp-for="StartDate" type="date" class="form-control" /></div>
+                <div class="col-md-6"><label asp-for="EndDate" class="form-label"></label><input asp-for="EndDate" type="date" class="form-control" /><span asp-validation-for="EndDate" class="field-validation-error"></span></div>
+                <div class="col-4"><label asp-for="PointsForWin" class="form-label"></label><input asp-for="PointsForWin" class="form-control" /><span asp-validation-for="PointsForWin" class="field-validation-error"></span></div>
+                <div class="col-4"><label asp-for="PointsForDraw" class="form-label"></label><input asp-for="PointsForDraw" class="form-control" /></div>
+                <div class="col-4"><label asp-for="PointsForLoss" class="form-label"></label><input asp-for="PointsForLoss" class="form-control" /></div>
+                <div class="col-12">
+                    <label class="form-label">@Html.DisplayNameFor(m => m.TieBreakers)</label>
+                    <div class="form-text mb-2">تُطبق بالترتيب عند تساوي النقاط، حسب لائحة البطولة. إذا تساوت كل المعايير يُرتب الفريقان أبجدياً.</div>
+                    <div class="row g-2">
+                        @for (var i = 0; i < Model.TieBreakers.Count; i++)
+                        {
+                            <div class="col-md">
+                                <select name="TieBreakers[@i]" class="form-select" aria-label="المعيار @(i + 1)">
+                                    <option value="">@(i + 1). —</option>
+                                    @foreach (var c in criteria)
+                                    {
+                                        <option value="@c" selected="@(Model.TieBreakers[i] == c)">@(i + 1). @c.GetDisplayName()</option>
+                                    }
+                                </select>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <div class="col-12"><label asp-for="Regulations" class="form-label"></label><textarea asp-for="Regulations" class="form-control" rows="4"></textarea></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">حفظ</button>
+                <a class="btn btn-soft" asp-controller="Competitions" asp-action="Details" asp-route-id="@Model.CompetitionId">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

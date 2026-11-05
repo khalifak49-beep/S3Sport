@@ -1,0 +1,30 @@
+@model List<Sport>
+@{
+    ViewData["Title"] = "الرياضات";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <h2>الرياضات المتاحة</h2>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>إضافة رياضة</a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-stack table-hover table-nowrap">
+            <thead><tr><th>الرياضة</th><th>الرمز</th><th>اللاعبون</th><th>الأشواط</th><th>النقاط (ف/ت/خ)</th><th>المراكز</th><th>الحالة</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var s in Model)
+                {
+                    <tr>
+                        <td class="fw-semibold"><i class="@(s.IconClass ?? "fa-solid fa-medal") me-2 text-success"></i>@s.NameAr</td>
+                        <td class="ltr">@s.Code</td>
+                        <td>@s.PlayersOnField</td>
+                        <td>@s.PeriodsCount × @s.PeriodDurationMinutes د</td>
+                        <td class="ltr">@s.PointsForWin / @s.PointsForDraw / @s.PointsForLoss</td>
+                        <td>@string.Join("، ", s.Positions.OrderBy(p => p.SortOrder).Select(p => p.NameAr))</td>
+                        <td>@if (s.IsActive) { <span class="badge text-bg-success">مفعّلة</span> } else { <span class="badge text-bg-secondary">معطّلة</span> }</td>
+                        <td class="text-end"><a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@s.Id"><i class="fa-solid fa-pen"></i></a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>

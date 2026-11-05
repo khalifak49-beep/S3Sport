@@ -1,0 +1,191 @@
+@model RegionSelectViewModel
+@{
+    ViewData["Title"] = "اختيار المنطقة";
+    var signedIn = User.Identity?.IsAuthenticated == true;
+}
+
+<div class="mb-4">
+    <h1 class="page-title">اختيار المنطقة</h1>
+    <p class="page-subtitle">
+        @if (Model.CurrentRegionName != null)
+        {
+            <text>منطقتك الحالية: <strong class="text-body">@Model.CurrentRegionName</strong></text>
+        }
+        else
+        {
+            <text>اختر منطقتك لعرض فرقها وبطولاتها ومبارياتها.</text>
+        }
+    </p>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="s3-card mb-4">
+            <div class="s3-card-body">
+                <label for="regionSearch" class="form-label"><i class="fa-solid fa-magnifying-glass me-1"></i>ابحث عن منطقتك</label>
+                <div class="position-relative">
+                    <input id="regionSearch" type="search" class="form-control" placeholder="اكتب اسم الولاية أو المنطقة أو القرية..." autocomplete="off"
+                           role="combobox" aria-expanded="false" aria-controls="regionResults" />
+                    <div id="regionResults" class="search-results s3-card d-none" role="listbox"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="s3-card">
+            <div class="s3-card-header"><h2>أو اختر من القوائم</h2></div>
+            <div class="s3-card-body">
+                <form asp-action="Index" method="post" id="regionForm" novalidate>
+                    <input type="hidden" asp-for="ReturnUrl" />
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label asp-for="GovernorateId" class="form-label"></label>
+                            <select asp-for="GovernorateId" asp-items="Model.Governorates" class="form-select">
+                                <option value="0">اختر المحافظة</option>
+                            </select>
+                            <span asp-validation-for="GovernorateId" class="field-validation-error"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="WilayatId" class="form-label"></label>
+                            <select asp-for="WilayatId" class="form-select" data-cascade-parent="#GovernorateId"
+                                    data-cascade-url="/Region/Wilayats?governorateId=" data-placeholder="كل الولايات" data-selected="@Model.WilayatId"></select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="AreaId" class="form-label"></label>
+                            <select asp-for="AreaId" class="form-select" data-cascade-parent="#WilayatId"
+                                    data-cascade-url="/Region/Areas?wilayatId=" data-placeholder="كل المناطق" data-selected="@Model.AreaId"></select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="VillageId" class="form-label"></label>
+                            <select asp-for="VillageId" class="form-select" data-cascade-parent="#AreaId"
+                                    data-cascade-url="/Region/Villages?areaId=" data-placeholder="كل القرى" data-selected="@Model.VillageId"></select>
+                        </div>
+                    </div>
+                    @if (signedIn)
+                    {
+                        <div class="form-check mt-3">
+                            <input asp-for="MakeDefault" class="form-check-input" />
+                            <label asp-for="MakeDefault" class="form-check-label"></label>
+                        </div>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="MakeDefault" />
+                    }
+                    <button type="submit" class="btn btn-primary mt-4"><i class="fa-solid fa-check me-1"></i>اعتماد المنطقة</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="s3-card">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-bookmark me-1"></i>مناطقي المحفوظة</h2></div>
+            @if (!signedIn)
+            {
+                <div class="s3-card-body text-muted">
+                    <a asp-controller="Account" asp-action="Login" asp-route-returnUrl="/Region">سجّل الدخول</a>
+                    لحفظ منطقتك الافتراضية ومتابعة مناطق أخرى من أي جهاز.
+                </div>
+            }
+            else if (Model.SavedRegions.Count == 0)
+            {
+                <div class="s3-card-body text-muted">لم تحفظ أي منطقة بعد. المنطقة التي تختارها تُحفظ تلقائياً.</div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var r in Model.SavedRegions)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2 flex-wrap py-3">
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-truncate">@r.DisplayName</div>
+                                <div class="small">
+                                    @if (r.IsDefault) { <span class="badge text-bg-success">الافتراضية</span> }
+                                    @if (r.IsCurrent) { <span class="badge text-bg-info">الحالية</span> }
+                                </div>
+                            </div>
+                            <div class="table-actions">
+                                @if (!r.IsCurrent)
+                                {
+                                    <form asp-action="Use" asp-route-id="@r.Id" method="post">
+                                        <button class="btn btn-soft btn-sm" type="submit">عرض</button>
+                                    </form>
+                                }
+                                @if (!r.IsDefault)
+                                {
+                                    <form asp-action="Use" asp-route-id="@r.Id" asp-route-makeDefault="true" method="post">
+                                        <button class="btn btn-soft btn-sm" type="submit" title="جعلها الافتراضية"><i class="fa-regular fa-star"></i></button>
+                                    </form>
+                                    <form asp-action="Remove" asp-route-id="@r.Id" method="post" data-confirm="حذف المنطقة من قائمتك؟" data-confirm-danger>
+                                        <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                }
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Live region search: picking a result fills the form's ids and submits it.
+        (() => {
+            const input = document.getElementById('regionSearch');
+            const box = document.getElementById('regionResults');
+            const form = document.getElementById('regionForm');
+            let timer, controller;
+
+            const close = () => { box.classList.add('d-none'); input.setAttribute('aria-expanded', 'false'); };
+            const pick = item => {
+                form.querySelector('#GovernorateId').value = item.governorateId;
+                const setHidden = (name, value) => {
+                    const select = form.querySelector('#' + name);
+                    select.innerHTML = '';
+                    select.add(new Option('', value ?? ''));
+                    select.value = value ?? '';
+                    select.disabled = false;
+                };
+                setHidden('WilayatId', item.wilayatId);
+                setHidden('AreaId', item.areaId);
+                setHidden('VillageId', item.villageId);
+                form.submit();
+            };
+
+            input.addEventListener('input', () => {
+                clearTimeout(timer);
+                const q = input.value.trim();
+                if (q.length < 2) { close(); return; }
+                timer = setTimeout(async () => {
+                    controller?.abort();
+                    controller = new AbortController();
+                    try {
+                        const res = await fetch('/Region/Search?q=' + encodeURIComponent(q), { signal: controller.signal });
+                        const items = await res.json();
+                        box.innerHTML = '';
+                        if (!items.length) {
+                            box.innerHTML = '<div class="p-3 text-muted small">لا توجد نتائج مطابقة</div>';
+                        }
+                        items.forEach(item => {
+                            const btn = document.createElement('button');
+                            btn.type = 'button';
+                            btn.setAttribute('role', 'option');
+                            btn.innerHTML = '<span></span><small class="text-muted"></small>';
+                            btn.children[0].textContent = item.text;
+                            btn.children[1].textContent = item.level;
+                            btn.addEventListener('click', () => pick(item));
+                            box.appendChild(btn);
+                        });
+                        box.classList.remove('d-none');
+                        input.setAttribute('aria-expanded', 'true');
+                    } catch (e) { if (e.name !== 'AbortError') close(); }
+                }, 250);
+            });
+            document.addEventListener('click', e => { if (!box.contains(e.target) && e.target !== input) close(); });
+            input.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+        })();
+    </script>
+}

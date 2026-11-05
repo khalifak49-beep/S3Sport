@@ -1,0 +1,45 @@
+@model List<SeasonRow>
+@{
+    ViewData["Title"] = "المواسم";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <h2>المواسم الرياضية</h2>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>إضافة موسم</a>
+    </div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state"><i class="fa-regular fa-calendar d-block"></i><p class="mb-0">لا توجد مواسم بعد.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>الموسم</th><th>من</th><th>إلى</th><th>البطولات</th><th></th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td class="fw-semibold">@s.Name</td>
+                            <td>@s.StartDate.ToString("yyyy/MM/dd")</td>
+                            <td>@s.EndDate.ToString("yyyy/MM/dd")</td>
+                            <td>@s.EditionsCount</td>
+                            <td>@if (s.IsCurrent) { <span class="badge text-bg-success">الموسم الحالي</span> }</td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@s.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                                    @if (s.EditionsCount == 0)
+                                    {
+                                        <form asp-action="Delete" asp-route-id="@s.Id" method="post" data-confirm="حذف الموسم؟" data-confirm-text="@s.Name" data-confirm-danger>
+                                            <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                        </form>
+                                    }
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

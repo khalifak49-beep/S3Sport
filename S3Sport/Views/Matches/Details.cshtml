@@ -1,0 +1,144 @@
+@model MatchDetailsViewModel
+@{
+    var m = Model.Info;
+    ViewData["Title"] = $"{m.HomeName} × {m.AwayName}";
+    var hasLineups = Model.HomeLineup.Count + Model.AwayLineup.Count > 0;
+}
+
+<div data-match-page="@m.Id" id="matchPage">
+    <script type="application/json" id="matchState">@Json.Serialize(Model.Live)</script>
+
+    <section class="s3-card scoreboard mb-3 @(m.IsLive ? "is-live" : "")" data-live-match="@m.Id" data-status="@m.Status" data-period="@m.CurrentPeriod"
+             data-period-start="@m.PeriodStartIso" data-period-duration="@m.PeriodDurationMinutes">
+        <div class="scoreboard-meta">
+            @if (m.CompetitionSlug != null) { <a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a> } else { <span>مباراة ودية</span> }
+            @if (m.RoundName != null) { <span>· @m.RoundName</span> }
+            @if (m.GroupName != null) { <span>· المجموعة @m.GroupName</span> }
+        </div>
+        <div class="scoreboard-row">
+            @if (m.HomeSlug != null) { <a class="sb-team text-reset" href="/teams/@m.HomeSlug">@Html.EntityLogo(m.HomeLogo, m.HomeName, 64)<span>@m.HomeName</span></a> }
+            else { <div class="sb-team">@Html.EntityLogo(m.HomeLogo, m.HomeName, 64)<span>@m.HomeName</span></div> }
+            <div class="sb-score">
+                @if (m.HasScore)
+                {
+                    <div class="sb-digits"><span data-home-score>@m.HomeScore</span> - <span data-away-score>@m.AwayScore</span></div>
+                }
+                else
+                {
+                    <div class="sb-kickoff"><span data-home-score></span><span>@m.KickoffAt.ToMuscatString("HH:mm")</span><span data-away-score></span></div>
+                }
+                <div class="sb-pens d-none" data-pens></div>
+                <div class="sb-status"><span data-status>@m.Status.GetDisplayName()</span> <span class="sb-minute d-none" data-minute></span></div>
+                @if (!m.HasScore) { <div class="small text-muted mt-1">@m.KickoffAt.ToMuscatString("dddd yyyy/MM/dd")</div> }
+            </div>
+            @if (m.AwaySlug != null) { <a class="sb-team text-reset" href="/teams/@m.AwaySlug">@Html.EntityLogo(m.AwayLogo, m.AwayName, 64)<span>@m.AwayName</span></a> }
+            else { <div class="sb-team">@Html.EntityLogo(m.AwayLogo, m.AwayName, 64)<span>@m.AwayName</span></div> }
+        </div>
+        <div class="d-flex justify-content-center gap-2 flex-wrap pb-3">
+            <partial name="_FollowButton" model="Model.Follow" />
+            @if (Model.CanOperate)
+            {
+                <a class="btn btn-soft" asp-controller="MatchControl" asp-action="Index" asp-route-id="@m.Id"><i class="fa-solid fa-tower-broadcast me-1"></i>شاشة التسجيل</a>
+            }
+        </div>
+        @if (!string.IsNullOrEmpty(Model.Notes) && m.Status is MatchStatus.Postponed or MatchStatus.Cancelled)
+        {
+            <div class="alert alert-warning m-3 mt-0">@Model.Notes</div>
+        }
+    </section>
+
+    <ul class="nav nav-pills match-tabs mb-3" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-events" type="button" role="tab">الأحداث</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-lineups" type="button" role="tab">التشكيلة</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-info" type="button" role="tab">معلومات</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-h2h" type="button" role="tab">المواجهات</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-events" role="tabpanel">
+            <div class="s3-card">
+                <ul class="list-group list-group-flush timeline" id="timeline" aria-live="polite"></ul>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-lineups" role="tabpanel">
+            @if (!hasLineups)
+            {
+                <div class="s3-card empty-state py-4"><i class="fa-solid fa-people-group d-block"></i><p class="mb-0">لم تُنشر التشكيلة بعد.</p></div>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var (name, lineup) in new[] { (m.HomeName, Model.HomeLineup), (m.AwayName, Model.AwayLineup) })
+                    {
+                        <div class="col-md-6">
+                            <div class="s3-card h-100">
+                                <div class="s3-card-header"><h2>@name</h2></div>
+                                @foreach (var (title, players) in new[] { ("الأساسيون", lineup.Where(p => p.IsStarter).ToList()), ("الاحتياط", lineup.Where(p => !p.IsStarter).ToList()) })
+                                {
+                                    if (players.Count == 0) { continue; }
+                                    <div class="px-3 pt-2 small text-muted">@title</div>
+                                    <ul class="list-group list-group-flush">
+                                        @foreach (var p in players)
+                                        {
+                                            <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                                                <span class="shirt-number">@(p.Number?.ToString() ?? "—")</span>
+                                                <a class="flex-grow-1 text-reset stretched-link" href="/players/@p.PlayerId">@p.Name</a>
+                                                @if (p.IsCaptain) { <span class="badge text-bg-warning">C</span> }
+                                                <span class="small text-muted">@p.Position</span>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+
+        <div class="tab-pane fade" id="tab-info" role="tabpanel">
+            <div class="s3-card">
+                <div class="s3-card-body">
+                    <dl class="info-list">
+                        <dt>الموعد</dt><dd>@m.KickoffAt.ToMuscatString("dddd yyyy/MM/dd — HH:mm")</dd>
+                        @if (m.CompetitionName != null) { <dt>البطولة</dt><dd><a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a>@(Model.StageName != null ? " · " + Model.StageName : "")</dd> }
+                        <dt>الملعب</dt><dd>@(m.VenueName ?? "—") @if (Model.VenueAddress != null) { <span class="text-muted small">(@Model.VenueAddress)</span> }</dd>
+                        @foreach (var (role, name) in Model.Officials) { <dt>@role.GetDisplayName()</dt><dd>@name</dd> }
+                        @if (Model.Attendance != null) { <dt>الحضور</dt><dd>@Model.Attendance.Value.ToString("N0")</dd> }
+                        @if (Model.BestPlayerName != null) { <dt>أفضل لاعب</dt><dd><i class="fa-solid fa-star text-warning me-1"></i><a href="/players/@Model.BestPlayerId">@Model.BestPlayerName</a></dd> }
+                    </dl>
+                    @if (!string.IsNullOrEmpty(Model.Summary))
+                    {
+                        <hr /><div style="white-space:pre-line">@Model.Summary</div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-pane fade" id="tab-h2h" role="tabpanel">
+            @if (Model.HeadToHead.Count == 0)
+            {
+                <div class="s3-card empty-state py-4"><i class="fa-solid fa-scale-balanced d-block"></i><p class="mb-0">لا توجد مواجهات سابقة مسجلة بين الفريقين.</p></div>
+            }
+            else
+            {
+                <div class="s3-card mb-3">
+                    <div class="h2h-summary">
+                        <div><div class="h2h-value">@Model.HeadToHeadSummary.HomeWins</div><div class="small text-muted">فوز @m.HomeName</div></div>
+                        <div><div class="h2h-value">@Model.HeadToHeadSummary.Draws</div><div class="small text-muted">تعادل</div></div>
+                        <div><div class="h2h-value">@Model.HeadToHeadSummary.AwayWins</div><div class="small text-muted">فوز @m.AwayName</div></div>
+                    </div>
+                </div>
+                <div class="s3-card match-group">
+                    @{ ViewData["ShowCompetition"] = true; }
+                    @foreach (var h in Model.HeadToHead) { <partial name="_MatchCard" model="h" /> }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/match.js" asp-append-version="true"></script>
+}

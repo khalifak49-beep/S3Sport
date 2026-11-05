@@ -1,0 +1,104 @@
+@model TeamApplicationDetailsViewModel
+@{
+    ViewData["Title"] = "مراجعة طلب تسجيل فريق";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        @Html.EntityLogo(Model.LogoPath, Model.NameAr, 72)
+        <div>
+            <h2 class="page-title">@Model.NameAr</h2>
+            <div class="text-muted">@Model.NameEn</div>
+            <span class="badge @Model.Status.BadgeClass() mt-1">@Model.Status.GetDisplayName()</span>
+        </div>
+    </div>
+    <div class="d-flex gap-2">
+        @if (Model.CreatedTeamId.HasValue)
+        {
+            <a class="btn btn-soft" asp-controller="Teams" asp-action="Edit" asp-route-id="@Model.CreatedTeamId"><i class="fa-solid fa-shield-halved me-1"></i>صفحة إدارة الفريق</a>
+        }
+        <a class="btn btn-soft" asp-action="Index">كل الطلبات</a>
+    </div>
+</div>
+
+@if (Model.SimilarTeams.Count > 0)
+{
+    <div class="alert alert-warning">
+        <i class="fa-solid fa-triangle-exclamation me-1"></i>
+        توجد فرق مسجلة بأسماء مطابقة: <strong>@string.Join("، ", Model.SimilarTeams)</strong>. تأكد من عدم تكرار الفريق قبل الموافقة.
+    </div>
+}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div class="s3-card mb-4">
+            <div class="s3-card-header"><h2>بيانات الفريق</h2></div>
+            <div class="s3-card-body"><partial name="_ApplicationInfo" model="Model" /></div>
+        </div>
+        <div class="s3-card">
+            <div class="s3-card-header"><h2>مقدم الطلب</h2></div>
+            <div class="s3-card-body">
+                <dl class="info-list">
+                    <dt>الاسم</dt><dd>@Model.ApplicantName</dd>
+                    <dt>البريد الإلكتروني</dt><dd class="ltr">@Model.ApplicantEmail</dd>
+                    <dt>الهاتف</dt><dd class="ltr">@(Model.ApplicantPhone ?? "—")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        @if (Model.Status == TeamStatus.Pending)
+        {
+            <div class="s3-card mb-4">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-circle-check text-success me-1"></i>الموافقة</h2></div>
+                <div class="s3-card-body">
+                    <p class="small text-muted">سيُنشأ الفريق وينشر في المنطقة المحددة، ويُمنح مقدم الطلب صلاحية مسؤول الفريق.</p>
+                    <form asp-action="Approve" asp-route-id="@Model.Id" method="post"
+                          data-confirm="اعتماد الفريق ونشره؟" data-confirm-text="@Model.NameAr" data-confirm-icon="question" data-confirm-button="نعم، اعتماد">
+                        <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                        @if (Model.IsProposedArea)
+                        {
+                            <div class="proposed-area mb-3">
+                                <div class="small mb-2"><i class="fa-solid fa-map-pin me-1"></i>اقترح مقدم الطلب منطقة غير مسجلة في ولاية <strong>@Model.WilayatName</strong>. ستُضاف عند الموافقة (أو تُستخدم المنطقة الموجودة إذا تطابق الاسم).</div>
+                                <label for="areaNameAr" class="form-label small">اسم المنطقة بالعربية</label>
+                                <input id="areaNameAr" name="areaNameAr" value="@Model.AreaName" class="form-control form-control-sm mb-2" maxlength="100" required />
+                                <label for="areaNameEn" class="form-label small">الاسم بالإنجليزية (اختياري)</label>
+                                <input id="areaNameEn" name="areaNameEn" class="form-control form-control-sm ltr" maxlength="100" />
+                            </div>
+                        }
+                        <label for="approveNotes" class="form-label">ملاحظات (اختياري)</label>
+                        <textarea id="approveNotes" name="notes" class="form-control mb-3" rows="2" maxlength="1000"></textarea>
+                        <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-check me-1"></i>اعتماد ونشر الفريق</button>
+                    </form>
+                </div>
+            </div>
+            <div class="s3-card">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-circle-xmark text-danger me-1"></i>الرفض</h2></div>
+                <div class="s3-card-body">
+                    <form asp-action="Reject" asp-route-id="@Model.Id" method="post" data-confirm="رفض الطلب؟" data-confirm-text="سيتم إشعار مقدم الطلب بالسبب." data-confirm-danger data-confirm-button="نعم، رفض">
+                        <input type="hidden" name="rowVersion" value="@Model.RowVersion" />
+                        <label for="rejectNotes" class="form-label">سبب الرفض <span class="text-danger">*</span></label>
+                        <textarea id="rejectNotes" name="notes" class="form-control mb-3" rows="3" maxlength="1000" required minlength="5"
+                                  placeholder="مثال: الشعار غير واضح، يرجى رفع شعار بدقة أعلى."></textarea>
+                        <button type="submit" class="btn btn-outline-danger w-100">رفض الطلب</button>
+                    </form>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="s3-card">
+                <div class="s3-card-header"><h2>نتيجة المراجعة</h2></div>
+                <div class="s3-card-body">
+                    <dl class="info-list">
+                        <dt>القرار</dt><dd><span class="badge @Model.Status.BadgeClass()">@Model.Status.GetDisplayName()</span></dd>
+                        <dt>بواسطة</dt><dd>@(Model.ReviewedByName ?? "—")</dd>
+                        <dt>التاريخ</dt><dd>@Model.ReviewedAt.ToMuscatString()</dd>
+                        <dt>ملاحظات</dt><dd>@(Model.ReviewNotes ?? "—")</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+    </div>
+</div>

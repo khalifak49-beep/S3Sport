@@ -1,0 +1,51 @@
+@model AuditLogListViewModel
+@{
+    ViewData["Title"] = "سجل العمليات";
+}
+
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث في العملية أو المستخدم أو التفاصيل..." />
+            <select name="entityName" class="form-select" data-autosubmit aria-label="نوع السجل">
+                <option value="">كل الأنواع</option>
+                @foreach (var e in Model.EntityNames)
+                {
+                    <option value="@e.Value" selected="@(Model.EntityName == e.Value)">@e.Text</option>
+                }
+            </select>
+            <label class="small text-muted" for="from">من</label>
+            <input id="from" type="date" name="from" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" />
+            <label class="small text-muted" for="to">إلى</label>
+            <input id="to" type="date" name="to" value="@Model.To?.ToString("yyyy-MM-dd")" class="form-control" />
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-filter me-1"></i>تصفية</button>
+        </form>
+    </div>
+
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-clock-rotate-left d-block"></i><p class="mb-0">لا توجد عمليات مطابقة.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover">
+                <thead><tr><th>الوقت</th><th>المستخدم</th><th>العملية</th><th>النوع</th><th>التفاصيل</th><th>IP</th></tr></thead>
+                <tbody>
+                    @foreach (var l in Model.Results.Items)
+                    {
+                        <tr>
+                            <td class="text-nowrap">@l.CreatedAt.ToMuscatString("yyyy/MM/dd HH:mm:ss")</td>
+                            <td class="ltr">@(l.UserName ?? "—")</td>
+                            <td class="fw-semibold">@l.Action</td>
+                            <td><span class="badge text-bg-secondary">@l.EntityName</span> <span class="small text-muted">#@l.EntityId</span></td>
+                            <td class="small" style="max-width:360px">@l.Details</td>
+                            <td class="small text-muted ltr">@l.IpAddress</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

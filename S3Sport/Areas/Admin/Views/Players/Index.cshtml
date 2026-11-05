@@ -1,0 +1,45 @@
+@model PlayerListViewModel
+@{
+    ViewData["Title"] = "إدارة اللاعبين";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث باسم اللاعب..." />
+            <select name="teamId" class="form-select" data-autosubmit aria-label="الفريق">
+                <option value="">كل الفرق</option>
+                @foreach (var t in Model.Teams) { <option value="@t.Value" selected="@(Model.TeamId?.ToString() == t.Value)">@t.Text</option> }
+            </select>
+            <div class="form-check ms-2"><input class="form-check-input" type="checkbox" name="freeAgents" value="true" id="fa" checked="@Model.FreeAgentsOnly" data-autosubmit /><label class="form-check-label" for="fa">اللاعبون الأحرار فقط</label></div>
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a class="btn btn-primary" asp-action="Create" asp-route-teamId="@Model.TeamId"><i class="fa-solid fa-plus me-1"></i>إضافة لاعب</a>
+    </div>
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-person-running d-block"></i><p class="mb-0">لا يوجد لاعبون مطابقون.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>اللاعب</th><th>الفريق</th><th>الرقم</th><th>المركز</th><th>المشاركات</th><th>الأهداف</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var p in Model.Results.Items)
+                    {
+                        <tr>
+                            <td><a class="d-flex align-items-center gap-2 text-reset" asp-action="Details" asp-route-id="@p.Id">@Html.EntityLogo(p.PhotoPath, p.FullNameAr, 34)<span class="fw-semibold">@p.FullNameAr</span></a></td>
+                            <td>@(p.TeamName ?? "لاعب حر")</td>
+                            <td>@(p.ShirtNumber?.ToString() ?? "—")</td>
+                            <td>@(p.Position ?? "—")</td>
+                            <td>@p.Appearances</td>
+                            <td>@p.Goals</td>
+                            <td class="text-end"><a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@p.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

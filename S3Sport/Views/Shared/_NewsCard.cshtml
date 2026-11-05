@@ -1,0 +1,22 @@
+@model NewsListItem
+<a class="s3-card news-card text-reset h-100" href="/news/@Model.Slug">
+    <div class="news-cover">
+        @if (Model.CoverImagePath != null)
+        {
+            <img src="@Model.CoverImagePath" alt="" loading="lazy" />
+        }
+        else
+        {
+            <i class="fa-regular fa-newspaper"></i>
+        }
+        @if (Model.HasVideo) { <span class="news-video"><i class="fa-solid fa-play"></i></span> }
+    </div>
+    <div class="p-3">
+        <div class="small text-muted mb-1">
+            <span class="badge text-bg-secondary">@Model.Category.GetDisplayName()</span>
+            @Model.PublishedAt.ToMuscatString("yyyy/MM/dd")
+        </div>
+        <h3 class="news-title">@Model.Title</h3>
+        @if (Model.Summary != null) { <p class="small text-muted mb-0 news-summary">@Model.Summary</p> }
+    </div>
+</a>

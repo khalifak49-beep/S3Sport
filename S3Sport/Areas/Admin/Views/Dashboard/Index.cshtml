@@ -1,0 +1,165 @@
+@model DashboardViewModel
+@{
+    ViewData["Title"] = "لوحة التحكم";
+}
+
+<div class="stat-grid mb-4">
+    <div>
+        <a class="s3-card stat-card text-reset" asp-controller="Users" asp-action="Index">
+            <span class="stat-icon tint-blue"><i class="fa-solid fa-users"></i></span>
+            <div><div class="stat-value">@Model.TotalUsers</div><div class="stat-label">المستخدمون</div><div class="stat-delta"><bdi>+@Model.NewUsersThisWeek</bdi> هذا الأسبوع</div></div>
+        </a>
+    </div>
+    <div>
+        <a class="s3-card stat-card text-reset" asp-controller="Teams" asp-action="Index" asp-route-status="@TeamStatus.Approved">
+            <span class="stat-icon"><i class="fa-solid fa-shield-halved"></i></span>
+            <div><div class="stat-value">@Model.ApprovedTeams</div><div class="stat-label">الفرق المعتمدة</div></div>
+        </a>
+    </div>
+    <div>
+        <a class="s3-card stat-card text-reset" asp-controller="TeamApplications" asp-action="Index">
+            <span class="stat-icon tint-amber"><i class="fa-solid fa-file-signature"></i></span>
+            <div><div class="stat-value">@Model.PendingApplications</div><div class="stat-label">طلبات بانتظار المراجعة</div></div>
+        </a>
+    </div>
+    <div>
+        <div class="s3-card stat-card">
+            <span class="stat-icon tint-violet"><i class="fa-solid fa-trophy"></i></span>
+            <div><div class="stat-value">@Model.ActiveCompetitions</div><div class="stat-label">البطولات النشطة</div></div>
+        </div>
+    </div>
+    <div>
+        <div class="s3-card stat-card">
+            <span class="stat-icon tint-red"><i class="fa-solid fa-tower-broadcast"></i></span>
+            <div>
+                <div class="stat-value">@Model.LiveMatches @if (Model.LiveMatches > 0) { <span class="live-dot align-middle"></span> }</div>
+                <div class="stat-label">مباريات مباشرة الآن</div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="s3-card stat-card">
+            <span class="stat-icon tint-cyan"><i class="fa-regular fa-calendar"></i></span>
+            <div><div class="stat-value">@Model.UpcomingMatches</div><div class="stat-label">المباريات القادمة</div></div>
+        </div>
+    </div>
+    <div>
+        <div class="s3-card stat-card">
+            <span class="stat-icon tint-blue"><i class="fa-solid fa-person-running"></i></span>
+            <div><div class="stat-value">@Model.TotalPlayers</div><div class="stat-label">اللاعبون</div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-lg-8">
+        <div class="s3-card h-100">
+            <div class="s3-card-header"><h2>الفرق المعتمدة حسب المحافظة</h2></div>
+            <div class="s3-card-body"><div style="height:280px"><canvas id="teamsChart" aria-label="الفرق حسب المحافظة" role="img"></canvas></div></div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="s3-card h-100">
+            <div class="s3-card-header"><h2>المستخدمون حسب الدور</h2></div>
+            <div class="s3-card-body"><div style="height:280px"><canvas id="rolesChart" aria-label="المستخدمون حسب الدور" role="img"></canvas></div></div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="s3-card h-100">
+            <div class="s3-card-header">
+                <h2>أقدم الطلبات المعلّقة</h2>
+                <a class="btn btn-soft btn-sm" asp-controller="TeamApplications" asp-action="Index">عرض الكل</a>
+            </div>
+            @if (Model.LatestApplications.Count == 0)
+            {
+                <div class="empty-state py-4"><i class="fa-regular fa-circle-check d-block"></i><p class="mb-0">لا توجد طلبات معلّقة</p></div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var a in Model.LatestApplications)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                            @Html.EntityLogo(a.LogoPath, a.NameAr, 36)
+                            <div class="flex-grow-1 min-w-0">
+                                <div class="fw-semibold text-truncate">@a.NameAr</div>
+                                <div class="small text-muted text-truncate">@a.RegionText — @a.ApplicantName</div>
+                            </div>
+                            <a class="btn btn-primary btn-sm" asp-controller="TeamApplications" asp-action="Details" asp-route-id="@a.Id">مراجعة</a>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="s3-card h-100">
+            <div class="s3-card-header">
+                <h2>آخر العمليات</h2>
+                <a class="btn btn-soft btn-sm" asp-controller="AuditLogs" asp-action="Index">السجل الكامل</a>
+            </div>
+            @if (Model.RecentActivity.Count == 0)
+            {
+                <div class="empty-state py-4"><i class="fa-solid fa-clock-rotate-left d-block"></i><p class="mb-0">لا توجد عمليات مسجلة بعد</p></div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var l in Model.RecentActivity)
+                    {
+                        <li class="list-group-item bg-transparent">
+                            <div class="d-flex justify-content-between gap-2">
+                                <span class="fw-semibold">@l.Action</span>
+                                <small class="text-muted text-nowrap">@l.CreatedAt.ToMuscatString("MM/dd HH:mm")</small>
+                            </div>
+                            <div class="small text-muted text-truncate">@l.UserName @(l.Details != null ? "— " + l.Details : "")</div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/lib/chartjs/chart.umd.min.js"></script>
+    <script>
+        (() => {
+            const teams = @Json.Serialize(Model.TeamsPerGovernorate);
+            const roles = @Json.Serialize(Model.UsersPerRole);
+            const palette = ['#1cc683', '#3b82f6', '#f59e0b', '#8b5cf6', '#06b6d4', '#e11d48', '#94a3b8'];
+            let charts = [];
+
+            const render = () => {
+                charts.forEach(c => c.destroy());
+                const css = getComputedStyle(document.documentElement);
+                const text = css.getPropertyValue('--s3-muted').trim();
+                const grid = css.getPropertyValue('--s3-border').trim();
+                const brand = css.getPropertyValue('--s3-brand').trim();
+                Chart.defaults.font.family = css.getPropertyValue('--bs-font-sans-serif');
+                Chart.defaults.color = text;
+
+                charts = [
+                    new Chart(document.getElementById('teamsChart'), {
+                        type: 'bar',
+                        data: { labels: teams.map(p => p.label), datasets: [{ data: teams.map(p => p.value), backgroundColor: brand, borderRadius: 6, maxBarThickness: 36 }] },
+                        options: {
+                            maintainAspectRatio: false, plugins: { legend: { display: false } },
+                            scales: { x: { reverse: true, grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: grid } } }
+                        }
+                    }),
+                    new Chart(document.getElementById('rolesChart'), {
+                        type: 'doughnut',
+                        data: { labels: roles.map(p => p.label), datasets: [{ data: roles.map(p => p.value), backgroundColor: palette, borderWidth: 0 }] },
+                        options: { maintainAspectRatio: false, cutout: '62%', plugins: { legend: { position: 'bottom', rtl: true, labels: { boxWidth: 10, padding: 10 } } } }
+                    })
+                ];
+            };
+            render();
+            document.addEventListener('s3:theme', render);
+        })();
+    </script>
+}

@@ -1,0 +1,44 @@
+@model UserRolesViewModel
+@{
+    ViewData["Title"] = "صلاحيات المستخدم";
+}
+
+<div class="s3-card mx-auto" style="max-width:680px">
+    <div class="s3-card-header">
+        <div>
+            <h2>@Model.FullName</h2>
+            <div class="small text-muted ltr">@Model.Email</div>
+        </div>
+        <a class="btn btn-soft btn-sm" asp-action="Index">رجوع</a>
+    </div>
+    <div class="s3-card-body">
+        <form asp-action="Roles" asp-route-id="@Model.UserId" method="post">
+            <div class="row g-2">
+                @foreach (var r in Model.Roles)
+                {
+                    <div class="col-sm-6">
+                        <label class="s3-card d-flex align-items-center gap-2 p-3 h-100 @(r.Disabled ? "opacity-75" : "")" style="cursor:@(r.Disabled ? "default" : "pointer")">
+                            <input type="checkbox" class="form-check-input m-0" name="selectedRoles" value="@r.Name" checked="@r.Selected" disabled="@r.Disabled" />
+                            <span>
+                                <span class="fw-semibold d-block">@r.DisplayName</span>
+                                <span class="small text-muted ltr">@r.Name</span>
+                            </span>
+                        </label>
+                    </div>
+                }
+            </div>
+            <p class="form-text mt-3">
+                دور "مستخدم" أساسي لكل حساب. منح أو سحب دوري "مدير النظام الأعلى" و"مدير المنصة" متاح لمدير النظام الأعلى فقط.
+                صلاحية مسؤول الفريق تُدار تلقائياً عند ربط المستخدم بفريق.
+            </p>
+            <button type="submit" class="btn btn-primary">حفظ الصلاحيات</button>
+        </form>
+    </div>
+    @if (Model.ManagedTeams.Count > 0)
+    {
+        <div class="s3-card-body border-top">
+            <div class="text-muted small mb-1">الفرق التي يديرها</div>
+            @foreach (var t in Model.ManagedTeams) { <span class="badge text-bg-success ms-1">@t</span> }
+        </div>
+    }
+</div>

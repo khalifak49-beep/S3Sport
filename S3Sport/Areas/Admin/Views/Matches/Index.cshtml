@@ -1,0 +1,34 @@
+@model MatchListViewModel
+@{
+    ViewData["Title"] = "المباريات";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <select name="editionId" class="form-select" data-autosubmit aria-label="البطولة">
+                <option value="">كل البطولات</option>
+                @foreach (var e in Model.Editions) { <option value="@e.Value" selected="@(Model.EditionId?.ToString() == e.Value)">@e.Text</option> }
+            </select>
+            <select name="status" class="form-select" data-autosubmit aria-label="الحالة">
+                <option value="">كل الحالات</option>
+                @foreach (var s in Enum.GetValues<MatchStatus>()) { <option value="@s" selected="@(Model.Status == s)">@s.GetDisplayName()</option> }
+            </select>
+            <input type="date" name="from" value="@Model.From?.ToString("yyyy-MM-dd")" class="form-control" aria-label="من" />
+            <input type="date" name="to" value="@Model.To?.ToString("yyyy-MM-dd")" class="form-control" aria-label="إلى" />
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-filter"></i></button>
+        </form>
+        @if (User.IsAdmin())
+        {
+            <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>مباراة ودية</a>
+        }
+    </div>
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-futbol d-block"></i><p class="mb-0">لا توجد مباريات مطابقة.</p></div>
+    }
+    else
+    {
+        <partial name="_AdminMatchTable" model="Model.Results.Items" />
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

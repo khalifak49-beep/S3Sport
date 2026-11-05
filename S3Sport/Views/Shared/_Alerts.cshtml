@@ -1,0 +1,14 @@
+@* Shows TempData["Success"] / TempData["Error"] as SweetAlert toasts. Values are JSON-encoded to stay safe inside the script. *@
+@{
+    var success = TempData["Success"] as string;
+    var error = TempData["Error"] as string;
+}
+@if (success != null || error != null)
+{
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            @if (success != null) { <text>S3.toast('success', @Json.Serialize(success));</text> }
+            @if (error != null) { <text>Swal.fire({ icon: 'error', title: 'تنبيه', text: @Json.Serialize(error), confirmButtonText: 'حسناً' });</text> }
+        });
+    </script>
+}

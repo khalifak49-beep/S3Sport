@@ -1,0 +1,57 @@
+@model PlayerFormViewModel
+@* Player fields shared by admin and team-manager forms. Team selection is shown only when creating as admin. *@
+@{
+    var canPickTeam = Model.Id == 0 && Model.Teams.Any();
+}
+<div class="row g-3">
+    <div class="col-md-6"><label asp-for="FullNameAr" class="form-label"></label><input asp-for="FullNameAr" class="form-control" /><span asp-validation-for="FullNameAr" class="field-validation-error"></span></div>
+    <div class="col-md-6"><label asp-for="FullNameEn" class="form-label"></label><input asp-for="FullNameEn" class="form-control ltr" /></div>
+    <div class="col-md-4"><label asp-for="DateOfBirth" class="form-label"></label><input asp-for="DateOfBirth" type="date" class="form-control" /><span asp-validation-for="DateOfBirth" class="field-validation-error"></span></div>
+    <div class="col-md-4"><label asp-for="Nationality" class="form-label"></label><input asp-for="Nationality" class="form-control" /></div>
+    <div class="col-md-4">
+        <label asp-for="PositionId" class="form-label"></label>
+        <select asp-for="PositionId" asp-items="Model.Positions" class="form-select"><option value="">—</option></select>
+        <span asp-validation-for="PositionId" class="field-validation-error"></span>
+    </div>
+
+    <div class="col-12"><hr class="my-1" /></div>
+    @if (canPickTeam)
+    {
+        <div class="col-md-6">
+            <label asp-for="TeamId" class="form-label"></label>
+            <select asp-for="TeamId" asp-items="Model.Teams" class="form-select"><option value="">بدون فريق (لاعب حر)</option></select>
+            <span asp-validation-for="TeamId" class="field-validation-error"></span>
+        </div>
+        <div class="col-md-6"><label asp-for="JoinedOn" class="form-label"></label><input asp-for="JoinedOn" type="date" class="form-control" /></div>
+    }
+    else
+    {
+        <input type="hidden" asp-for="TeamId" />
+        <div class="col-md-6">
+            <label class="form-label">الفريق الحالي</label>
+            <div class="form-control-plaintext fw-semibold">@(Model.TeamName ?? "بدون فريق (لاعب حر)")</div>
+            @if (Model.Id != 0) { <div class="form-text">تغيير الفريق يتم بالانتقال من صفحة اللاعب.</div> }
+        </div>
+    }
+    @if (Model.TeamId is > 0 || canPickTeam)
+    {
+        <div class="col-md-3"><label asp-for="ShirtNumber" class="form-label"></label><input asp-for="ShirtNumber" type="number" min="1" max="99" class="form-control" /><span asp-validation-for="ShirtNumber" class="field-validation-error"></span></div>
+        <div class="col-md-3 d-flex align-items-end"><div class="form-check mb-2"><input asp-for="IsCaptain" class="form-check-input" /><label asp-for="IsCaptain" class="form-check-label"></label></div></div>
+    }
+
+    <div class="col-12">
+        <label asp-for="Photo" class="form-label"></label>
+        <div class="d-flex align-items-center gap-3">
+            <img id="photoPreview" src="@Model.ExistingPhotoPath" alt="" class="entity-logo @(Model.ExistingPhotoPath == null ? "d-none" : "")" style="width:72px;height:72px" />
+            <div class="flex-grow-1">
+                <input asp-for="Photo" type="file" class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" data-preview="#photoPreview" />
+                <span asp-validation-for="Photo" class="field-validation-error"></span>
+                @if (Model.ExistingPhotoPath != null)
+                {
+                    <div class="form-check mt-1"><input asp-for="RemovePhoto" class="form-check-input" /><label asp-for="RemovePhoto" class="form-check-label"></label></div>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-12"><label asp-for="Bio" class="form-label"></label><textarea asp-for="Bio" class="form-control" rows="3" maxlength="1000"></textarea></div>
+</div>

@@ -1,0 +1,30 @@
+@model IList<RoleSummary>
+@{
+    ViewData["Title"] = "الأدوار والصلاحيات";
+}
+
+<p class="text-muted">الأدوار ثابتة في النظام، وتُمنح للمستخدمين من صفحة <a asp-controller="Users" asp-action="Index">إدارة المستخدمين</a>.</p>
+
+<div class="row g-3">
+    @foreach (var r in Model)
+    {
+        <div class="col-md-6 col-xl-4">
+            <div class="s3-card h-100">
+                <div class="s3-card-header">
+                    <div>
+                        <h2>@r.DisplayName</h2>
+                        <div class="small text-muted ltr">@r.Name</div>
+                    </div>
+                    <a class="btn btn-soft btn-sm" asp-controller="Users" asp-action="Index" asp-route-role="@r.Name">
+                        <i class="fa-solid fa-users me-1"></i>@r.UserCount
+                    </a>
+                </div>
+                <div class="s3-card-body">
+                    <ul class="mb-0 ps-0 pe-3">
+                        @foreach (var p in r.Permissions) { <li class="mb-1">@p</li> }
+                    </ul>
+                </div>
+            </div>
+        </div>
+    }
+</div>

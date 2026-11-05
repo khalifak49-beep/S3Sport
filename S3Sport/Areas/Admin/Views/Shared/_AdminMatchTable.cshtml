@@ -1,0 +1,35 @@
+@model IEnumerable<MatchRow>
+<div class="table-responsive">
+    <table class="table table-stack table-hover table-nowrap mb-0">
+        <thead><tr><th>الموعد</th><th>الجولة</th><th class="text-start">المستضيف</th><th class="text-center">النتيجة</th><th>الضيف</th><th>الملعب</th><th>المسؤول</th><th>الحالة</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var m in Model)
+            {
+                var live = m.Status is MatchStatus.Live or MatchStatus.HalfTime;
+                <tr>
+                    <td>@m.KickoffAt.ToMuscatString("ddd MM/dd HH:mm")</td>
+                    <td class="small text-muted">@(m.GroupName != null ? $"م{m.GroupName} · " : "")@m.RoundName</td>
+                    <td class="text-start"><span class="d-inline-flex align-items-center gap-2">@m.HomeName @Html.EntityLogo(m.HomeLogo, m.HomeName, 24)</span></td>
+                    <td class="text-center fw-bold">
+                        @if (m.Status is MatchStatus.Finished || live)
+                        {
+                            <span>@m.HomeScore - @m.AwayScore</span>
+                            @if (m.HomePenaltyScore != null) { <div class="small text-muted">(@m.HomePenaltyScore - @m.AwayPenaltyScore)</div> }
+                        }
+                        else { <span class="text-muted">—</span> }
+                    </td>
+                    <td><span class="d-inline-flex align-items-center gap-2">@Html.EntityLogo(m.AwayLogo, m.AwayName, 24) @m.AwayName</span></td>
+                    <td class="small">@(m.VenueName ?? "—")</td>
+                    <td class="small">@(m.OperatorName ?? "—")</td>
+                    <td><span class="badge @(live ? "text-bg-danger" : m.Status == MatchStatus.Finished ? "text-bg-success" : m.Status == MatchStatus.Scheduled ? "text-bg-secondary" : "text-bg-warning")">@m.Status.GetDisplayName()</span></td>
+                    <td>
+                        <div class="table-actions">
+                            <a class="btn btn-soft btn-sm" asp-area="" asp-controller="MatchControl" asp-action="Index" asp-route-id="@m.Id" title="شاشة المباراة المباشرة"><i class="fa-solid fa-tower-broadcast"></i></a>
+                            <a class="btn btn-soft btn-sm" asp-area="Admin" asp-controller="Matches" asp-action="Edit" asp-route-id="@m.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                        </div>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

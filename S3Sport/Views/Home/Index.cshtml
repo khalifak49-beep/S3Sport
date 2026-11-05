@@ -1,0 +1,149 @@
+﻿@model HomeIndexViewModel
+@{
+    ViewData["Title"] = "الرئيسية";
+    ViewData["ShowCompetition"] = true;
+    var scopeNote = Model.MatchesAreNational && Model.HasRegion ? "لا توجد مباريات قريبة في منطقتك؛ نعرض مباريات السلطنة." : null;
+}
+
+<section class="hero mb-4">
+    <div class="row align-items-center g-3">
+        <div class="col-lg-8">
+            @if (Model.HasRegion)
+            {
+                <div class="text-muted mb-1"><i class="fa-solid fa-location-dot me-1"></i>منطقتك الحالية</div>
+                <h1 class="mb-2">@Model.RegionName</h1>
+                <p class="text-muted mb-0">الفرق المعتمدة في منطقتك: <strong class="text-body">@Model.TotalTeamsInRegion</strong></p>
+            }
+            else
+            {
+                <h1 class="mb-2">تابع رياضة منطقتك لحظة بلحظة</h1>
+                <p class="text-muted mb-0">اختر منطقتك لتظهر لك فرقها وبطولاتها ومبارياتها.</p>
+            }
+        </div>
+        <div class="col-lg-4 d-flex gap-2 justify-content-lg-end flex-wrap">
+            <a class="btn btn-primary" asp-controller="Region" asp-action="Index"><i class="fa-solid fa-location-dot me-1"></i>@(Model.HasRegion ? "تغيير المنطقة" : "اختر منطقتك")</a>
+            <a class="btn btn-soft" asp-controller="Matches" asp-action="Index"><i class="fa-regular fa-calendar me-1"></i>كل المباريات</a>
+        </div>
+    </div>
+</section>
+
+@if (scopeNote != null) { <p class="small text-muted mb-3"><i class="fa-solid fa-circle-info me-1"></i>@scopeNote</p> }
+
+@if (Model.LiveMatches.Count > 0)
+{
+    <h2 class="section-title"><span class="live-dot"></span>مباشر الآن</h2>
+    <section class="s3-card match-group mb-4">
+        @foreach (var m in Model.LiveMatches) { <partial name="_MatchCard" model="m" /> }
+    </section>
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2 class="section-title mb-0"><i class="fa-solid fa-calendar-day"></i>مباريات اليوم</h2>
+    <a class="btn btn-soft btn-sm" asp-controller="Matches" asp-action="Index">مركز المباريات</a>
+</div>
+@if (Model.TodayMatches.Count == 0)
+{
+    <div class="s3-card empty-state py-4 mb-4"><p class="mb-0">لا توجد مباريات أخرى اليوم.</p></div>
+}
+else
+{
+    <section class="s3-card match-group mb-4">
+        @foreach (var m in Model.TodayMatches) { <partial name="_MatchCard" model="m" /> }
+    </section>
+}
+
+@if (Model.FollowedTeams.Count > 0)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title mb-0"><i class="fa-solid fa-star"></i>فرقي المفضلة</h2>
+        <a class="btn btn-soft btn-sm" asp-controller="Favorites" asp-action="Index">إدارة المفضلة</a>
+    </div>
+    <div class="row g-3 mb-4">
+        @foreach (var team in Model.FollowedTeams)
+        {
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3"><partial name="_TeamCard" model="team" /></div>
+        }
+    </div>
+}
+
+<div class="row g-4 mb-4">
+    <div class="col-lg-6">
+        <h2 class="section-title"><i class="fa-regular fa-calendar"></i>المباريات القادمة</h2>
+        @if (Model.UpcomingMatches.Count == 0) { <div class="s3-card empty-state py-4"><p class="mb-0">لا توجد مباريات قادمة مجدولة.</p></div> }
+        else { <section class="s3-card match-group">@foreach (var m in Model.UpcomingMatches) { <partial name="_MatchCard" model="m" /> }</section> }
+    </div>
+    <div class="col-lg-6">
+        <h2 class="section-title"><i class="fa-solid fa-flag-checkered"></i>أحدث النتائج</h2>
+        @if (Model.LatestResults.Count == 0) { <div class="s3-card empty-state py-4"><p class="mb-0">لا توجد نتائج بعد.</p></div> }
+        else { <section class="s3-card match-group">@foreach (var m in Model.LatestResults) { <partial name="_MatchCard" model="m" /> }</section> }
+    </div>
+</div>
+
+@if (Model.ActiveCompetitions.Count > 0)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title mb-0"><i class="fa-solid fa-trophy"></i>البطولات الجارية</h2>
+        <a class="btn btn-soft btn-sm" asp-controller="Competitions" asp-action="Index">كل البطولات</a>
+    </div>
+    <div class="row g-3 mb-4">
+        @foreach (var c in Model.ActiveCompetitions)
+        {
+            <div class="col-12 col-sm-6 col-lg-4">
+                <a class="s3-card team-card text-reset" href="/competitions/@c.Slug">
+                    @Html.EntityLogo(c.LogoPath, c.NameAr, 44)
+                    <div class="min-w-0"><div class="name text-truncate">@c.NameAr</div><div class="small text-muted text-truncate">@c.RegionText · @c.CurrentEditionName</div></div>
+                </a>
+            </div>
+        }
+    </div>
+}
+
+@if (Model.HasRegion)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title mb-0"><i class="fa-solid fa-shield-halved"></i>فرق المنطقة</h2>
+        @if (Model.TotalTeamsInRegion > 0) { <a class="btn btn-soft btn-sm" asp-controller="Teams" asp-action="Index">كل الفرق (@Model.TotalTeamsInRegion)</a> }
+    </div>
+    @if (Model.Teams.Count == 0)
+    {
+        <div class="s3-card empty-state mb-4">
+            <i class="fa-solid fa-people-group d-block"></i>
+            <p class="mb-3">لا توجد فرق معتمدة في هذه المنطقة بعد.</p>
+            <div class="d-flex gap-2 justify-content-center flex-wrap">
+                <a class="btn btn-primary" asp-controller="TeamApplications" asp-action="Create">كن أول من يسجل فريقه</a>
+                <a class="btn btn-soft" asp-controller="Teams" asp-action="Index" asp-route-all="true">تصفح فرق كل المناطق</a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-3 mb-4">
+            @foreach (var team in Model.Teams.Take(8))
+            {
+                <div class="col-12 col-sm-6 col-lg-4 col-xl-3"><partial name="_TeamCard" model="team" /></div>
+            }
+        </div>
+    }
+}
+
+@if (Model.MostFollowed.Count > 0)
+{
+    <h2 class="section-title"><i class="fa-solid fa-fire"></i>الفرق الأكثر متابعة @(Model.MostFollowedIsNational ? "في عُمان" : "في منطقتك")</h2>
+    <div class="row g-3 mb-4">
+        @foreach (var team in Model.MostFollowed)
+        {
+            <div class="col-12 col-sm-6 col-lg-4"><partial name="_TeamCard" model="team" /></div>
+        }
+    </div>
+}
+
+@if (Model.LatestNews.Count > 0)
+{
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="section-title mb-0"><i class="fa-regular fa-newspaper"></i>آخر الأخبار</h2>
+        <a class="btn btn-soft btn-sm" asp-controller="News" asp-action="Index">كل الأخبار</a>
+    </div>
+    <div class="row g-3">
+        @foreach (var n in Model.LatestNews) { <div class="col-12 col-sm-6 col-lg-3"><partial name="_NewsCard" model="n" /></div> }
+    </div>
+}

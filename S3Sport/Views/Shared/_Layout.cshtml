@@ -1,0 +1,157 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-bs-theme="dark">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
+    <meta name="color-scheme" content="dark light" />
+    <meta name="theme-color" content="#0a0f1c" />
+    <meta name="description" content="S3Sport: تابع فرق منطقتك وبطولاتها ومبارياتها ونتائجها المباشرة في سلطنة عُمان." />
+    <link rel="manifest" href="~/manifest.webmanifest" />
+    <link rel="icon" type="image/png" href="~/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="~/icons/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="S3Sport" />
+    <title>@(ViewData["Title"] is string t ? $"{t} | S3Sport" : "S3Sport — الرياضة المحلية")</title>
+    <script>
+        // Apply the saved theme before first paint to avoid a flash.
+        try { var t = localStorage.getItem('s3s-theme'); if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-bs-theme', t); } catch (e) { }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.rtl.min.css" />
+    <link rel="stylesheet" href="~/lib/fontawesome/css/all.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body data-auth="@(User.Identity?.IsAuthenticated == true ? "1" : "0")">
+    @{
+        var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+        var isAdminUser = User.IsInRole(AppRoles.SuperAdmin) || User.IsInRole(AppRoles.Admin);
+    }
+    <header class="app-header sticky-top">
+        <nav class="navbar navbar-expand-xl py-2">
+            <div class="container">
+                <a class="brand me-0 ms-3" asp-area="" asp-controller="Home" asp-action="Index">
+                    <span class="brand-mark">S3</span>
+                    <span>S3<span class="accent">Sport</span></span>
+                </a>
+
+                <div class="d-flex align-items-center gap-2 order-xl-last">
+                    <div class="d-none d-sm-block"><vc:region-badge /></div>
+                    <button type="button" class="btn btn-soft btn-icon" data-theme-toggle title="تبديل الوضع الليلي/النهاري" aria-label="تبديل الوضع">
+                        <i data-theme-icon class="fa-solid fa-sun"></i>
+                    </button>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <vc:notification-bell />
+                        <div class="dropdown">
+                            <button class="btn btn-soft btn-icon" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="حسابي">
+                                <i class="fa-regular fa-user"></i>
+                            </button>
+                            @* "end" in RTL = aligned to the button's left edge, so the menu opens toward the screen. *@
+                            <ul class="dropdown-menu dropdown-menu-end p-2 user-menu">
+                                <li class="px-2 py-1 small text-muted text-truncate ltr">@User.Identity.Name</li>
+                                <li><hr class="dropdown-divider" /></li>
+                                @if (isAdminUser)
+                                {
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Dashboard" asp-action="Index"><i class="fa-solid fa-gauge-high me-2"></i>لوحة الإدارة</a></li>
+                                    <li>
+                                        <a class="dropdown-item d-flex align-items-center" asp-area="Admin" asp-controller="TeamApplications" asp-action="Index">
+                                            <i class="fa-solid fa-file-signature me-2"></i>مراجعة طلبات الفرق
+                                            <span class="badge rounded-pill text-bg-warning ms-auto"><vc:pending-applications /></span>
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider" /></li>
+                                }
+                                @if (!isAdminUser && User.IsInRole(AppRoles.TournamentManager))
+                                {
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="Competitions" asp-action="Index"><i class="fa-solid fa-trophy me-2"></i>إدارة بطولاتي</a></li>
+                                }
+                                @if (!isAdminUser && User.IsInRole(AppRoles.ContentManager))
+                                {
+                                    <li><a class="dropdown-item" asp-area="Admin" asp-controller="News" asp-action="Index"><i class="fa-regular fa-newspaper me-2"></i>إدارة الأخبار</a></li>
+                                }
+                                @if (User.IsInRole(AppRoles.TeamManager))
+                                {
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="MyTeams" asp-action="Index"><i class="fa-solid fa-people-group me-2"></i>إدارة فريقي</a></li>
+                                }
+                                @if (isAdminUser || User.IsInRole(AppRoles.MatchOperator) || User.IsInRole(AppRoles.TournamentManager) || User.IsInRole(AppRoles.TeamManager))
+                                {
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="MatchControl" asp-action="Mine"><i class="fa-solid fa-tower-broadcast me-2"></i>مبارياتي (تسجيل الأحداث)</a></li>
+                                }
+                                <li><a class="dropdown-item" asp-area="" asp-controller="Account" asp-action="Profile"><i class="fa-regular fa-id-card me-2"></i>حسابي</a></li>
+                                <li><a class="dropdown-item" asp-area="" asp-controller="TeamApplications" asp-action="Index"><i class="fa-solid fa-shield-halved me-2"></i>طلباتي لتسجيل الفرق</a></li>
+                                <li><a class="dropdown-item" asp-area="" asp-controller="Favorites" asp-action="Index"><i class="fa-solid fa-star me-2"></i>المفضلة</a></li>
+                                <li><a class="dropdown-item" asp-area="" asp-controller="Region" asp-action="Index"><i class="fa-solid fa-location-dot me-2"></i>مناطقي</a></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form asp-area="" asp-controller="Account" asp-action="Logout" method="post" class="js-logout">
+                                        <button type="submit" class="dropdown-item text-danger"><i class="fa-solid fa-arrow-right-from-bracket me-2"></i>تسجيل الخروج</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    }
+                    else
+                    {
+                        <a class="btn btn-soft d-none d-md-inline-flex" asp-area="" asp-controller="Account" asp-action="Login">دخول</a>
+                        <a class="btn btn-primary" asp-area="" asp-controller="Account" asp-action="Register">حساب جديد</a>
+                    }
+                    <button class="navbar-toggler btn-icon" type="button" data-bs-toggle="collapse" data-bs-target="#mainNav" aria-controls="mainNav" aria-expanded="false" aria-label="القائمة">
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+                </div>
+
+                <div class="collapse navbar-collapse" id="mainNav">
+                    <ul class="navbar-nav app-nav gap-xl-1 me-xl-3 mt-2 mt-xl-0">
+                        @foreach (var (ctrl, icon, text) in new[]
+                        {
+                            ("Home", "fa-house", "الرئيسية"), ("Matches", "fa-futbol", "المباريات"), ("Teams", "fa-shield-halved", "الفرق"),
+                            ("Competitions", "fa-trophy", "البطولات"), ("Standings", "fa-ranking-star", "الترتيب"), ("Players", "fa-person-running", "اللاعبون"),
+                            ("News", "fa-regular fa-newspaper", "الأخبار"), ("Favorites", "fa-star", "المفضلة")
+                        })
+                        {
+                            <li class="nav-item"><a class="nav-link @(controller == ctrl ? "active" : "")" asp-area="" asp-controller="@ctrl" asp-action="Index"><i class="@(icon.StartsWith("fa-regular") ? icon : "fa-solid " + icon) me-1"></i> @text</a></li>
+                        }
+                        <li class="nav-item d-sm-none"><a class="nav-link @(controller == "Region" ? "active" : "")" asp-area="" asp-controller="Region" asp-action="Index"><i class="fa-solid fa-location-dot me-1"></i> اختيار المنطقة</a></li>
+                        <li class="nav-item d-xl-none"><a class="nav-link @(controller == "TeamApplications" ? "active" : "")" asp-area="" asp-controller="TeamApplications" asp-action="Create"><i class="fa-solid fa-plus me-1"></i> سجّل فريقك</a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container py-4">
+        @RenderBody()
+    </main>
+
+    @* Mobile bottom tab bar (app-like navigation on phones). *@
+    <nav class="bottom-nav d-lg-none" aria-label="التنقل السريع">
+        @foreach (var (ctrl, icon, text) in new[] { ("Home", "fa-house", "الرئيسية"), ("Matches", "fa-futbol", "المباريات"), ("Competitions", "fa-trophy", "البطولات"), ("Standings", "fa-ranking-star", "الترتيب"), ("Favorites", "fa-star", "المفضلة") })
+        {
+            <a class="@(controller == ctrl ? "active" : "")" asp-area="" asp-controller="@ctrl" asp-action="Index"><i class="fa-solid @icon"></i><span>@text</span></a>
+        }
+    </nav>
+
+    <footer class="app-footer py-4 mt-4">
+        <div class="container d-flex flex-wrap justify-content-between gap-2">
+            <span>© @DateTime.UtcNow.Year S3Sport — منصة الرياضة المحلية في سلطنة عُمان</span>
+            <span><i class="fa-solid fa-location-dot me-1"></i>تابع فرق منطقتك وبطولاتها</span>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/lib/sweetalert2/sweetalert2.all.min.js"></script>
+    <script src="~/lib/signalr/signalr.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/live.js" asp-append-version="true"></script>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <script src="~/js/push.js" asp-append-version="true"></script>
+    }
+    <partial name="_Alerts" />
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

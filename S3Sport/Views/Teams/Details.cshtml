@@ -1,0 +1,152 @@
+@model TeamDetailsViewModel
+@{
+    ViewData["Title"] = Model.NameAr;
+    var accent = Model.PrimaryColor ?? "var(--s3-brand)";
+}
+
+<section class="team-hero s3-card mb-4" style="--team-accent:@accent">
+    <div class="team-hero-body">
+        @Html.EntityLogo(Model.LogoPath, Model.NameAr, 96)
+        <div class="flex-grow-1 min-w-0">
+            <h1 class="team-title">@Model.NameAr</h1>
+            <div class="text-muted ltr">@Model.NameEn</div>
+            <div class="team-meta">
+                <span><i class="fa-solid fa-futbol me-1"></i>@Model.SportName</span>
+                @if (Model.PrimaryAreaText != null) { <span><i class="fa-solid fa-location-dot me-1"></i>@Model.PrimaryAreaText</span> }
+                @if (Model.FoundedYear.HasValue) { <span><i class="fa-regular fa-calendar me-1"></i>تأسس عام @Model.FoundedYear</span> }
+            </div>
+        </div>
+        <div class="team-hero-actions">
+            <partial name="_FollowButton" model="Model.Follow" />
+            @if (Model.CanManage)
+            {
+                <a class="btn btn-soft btn-sm" asp-controller="MyTeams" asp-action="Squad" asp-route-id="@Model.Id"><i class="fa-solid fa-people-group me-1"></i>إدارة الفريق</a>
+            }
+            @if (Model.CanAdminEdit)
+            {
+                <a class="btn btn-soft btn-sm" asp-area="Admin" asp-controller="Teams" asp-action="Edit" asp-route-id="@Model.Id"><i class="fa-solid fa-pen me-1"></i>تعديل</a>
+            }
+        </div>
+    </div>
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-8">
+        @{ ViewData["ShowCompetition"] = true; }
+        @if (Model.UpcomingMatches.Count > 0)
+        {
+            <section class="s3-card match-group mb-4">
+                <header class="match-group-header"><span class="fw-semibold"><i class="fa-regular fa-calendar me-1"></i>المباريات القادمة</span></header>
+                @foreach (var m in Model.UpcomingMatches) { <partial name="_MatchCard" model="m" /> }
+            </section>
+        }
+        @if (Model.RecentMatches.Count > 0)
+        {
+            <section class="s3-card match-group mb-4">
+                <header class="match-group-header"><span class="fw-semibold"><i class="fa-solid fa-flag-checkered me-1"></i>آخر النتائج</span></header>
+                @foreach (var m in Model.RecentMatches) { <partial name="_MatchCard" model="m" /> }
+            </section>
+        }
+
+        <div class="s3-card mb-4">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-circle-info me-1"></i>نبذة عن الفريق</h2></div>
+            <div class="s3-card-body" style="white-space:pre-line">@(string.IsNullOrWhiteSpace(Model.Description) ? "لم يضف الفريق نبذة بعد." : Model.Description)</div>
+        </div>
+
+        <div class="s3-card">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-people-group me-1"></i>اللاعبون</h2><span class="text-muted small">@Model.Players.Count لاعب</span></div>
+            @if (Model.Players.Count == 0)
+            {
+                <div class="empty-state py-4"><i class="fa-solid fa-person-running d-block"></i><p class="mb-0">لم تتم إضافة لاعبين لهذا الفريق بعد.</p></div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var p in Model.Players)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-3">
+                            <span class="shirt-number">@(p.ShirtNumber?.ToString() ?? "—")</span>
+                            @Html.EntityLogo(p.PhotoPath, p.FullNameAr, 36)
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold"><a class="text-reset" href="/players/@p.PlayerId">@p.FullNameAr</a> @if (p.IsCaptain) { <span class="badge text-bg-warning ms-1">القائد</span> }</div>
+                                <div class="small text-muted">@(p.Position ?? "")</div>
+                            </div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="s3-card mb-4">
+            <div class="s3-card-header"><h2>معلومات</h2></div>
+            <div class="s3-card-body">
+                <dl class="info-list">
+                    <dt>المنطقة</dt><dd>@(Model.PrimaryAreaText ?? "—")</dd>
+                    @if (Model.OtherAreas.Count > 0)
+                    {
+                        <dt>يمثل أيضاً</dt><dd>@string.Join(" · ", Model.OtherAreas)</dd>
+                    }
+                    @if (!string.IsNullOrEmpty(Model.ShortName)) { <dt>الاسم المختصر</dt><dd>@Model.ShortName</dd> }
+                    @if (!string.IsNullOrEmpty(Model.ContactEmail)) { <dt>التواصل</dt><dd class="ltr"><a href="mailto:@Model.ContactEmail">@Model.ContactEmail</a></dd> }
+                    @if (!string.IsNullOrEmpty(Model.SocialUrl)) { <dt>حسابات التواصل</dt><dd><a href="@Model.SocialUrl" target="_blank" rel="noopener nofollow">زيارة الحساب <i class="fa-solid fa-arrow-up-right-from-square small"></i></a></dd> }
+                </dl>
+            </div>
+        </div>
+
+        @if (Model.Totals.Played > 0)
+        {
+            <div class="s3-card mb-4">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-chart-simple me-1"></i>الإحصائيات (كل المواسم)</h2></div>
+                <div class="s3-card-body">
+                    <div class="team-record">
+                        <div><span class="stat-value">@Model.Totals.Played</span><span class="stat-label">لعب</span></div>
+                        <div class="text-success"><span class="stat-value">@Model.Won</span><span class="stat-label">فوز</span></div>
+                        <div><span class="stat-value">@Model.Drawn</span><span class="stat-label">تعادل</span></div>
+                        <div class="text-danger"><span class="stat-value">@Model.Lost</span><span class="stat-label">خسارة</span></div>
+                    </div>
+                    <div class="record-bar mt-3" role="img" aria-label="نسبة الفوز والتعادل والخسارة">
+                        <span class="w" style="width:@(100.0 * Model.Won / Model.Totals.Played)%"></span><span class="d" style="width:@(100.0 * Model.Drawn / Model.Totals.Played)%"></span><span class="l" style="width:@(100.0 * Model.Lost / Model.Totals.Played)%"></span>
+                    </div>
+                    <dl class="info-list mt-3">
+                        <dt>الأهداف (له / عليه)</dt><dd class="ltr">@Model.Totals.GoalsFor / @Model.Totals.GoalsAgainst</dd>
+                        <dt>شباك نظيفة</dt><dd>@Model.Totals.CleanSheets</dd>
+                    </dl>
+                </div>
+            </div>
+        }
+
+        @if (Model.Competitions.Count > 0)
+        {
+            <div class="s3-card mb-4">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-trophy me-1"></i>البطولات</h2></div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var c in Model.Competitions)
+                    {
+                        <li class="list-group-item bg-transparent"><a class="d-flex align-items-center gap-2 text-reset" href="/competitions/@c.Slug">@Html.EntityLogo(c.LogoPath, c.NameAr, 28)<span class="flex-grow-1">@c.NameAr</span><span class="small text-muted">@c.CurrentEditionName</span></a></li>
+                    }
+                </ul>
+            </div>
+        }
+
+        @if (Model.News.Count > 0)
+        {
+            <h2 class="section-title"><i class="fa-regular fa-newspaper"></i>أخبار الفريق</h2>
+            <div class="d-grid gap-3 mb-4">@foreach (var n in Model.News) { <partial name="_NewsCard" model="n" /> }</div>
+        }
+
+        @if (Model.Achievements.Count > 0)
+        {
+            <div class="s3-card">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-trophy me-1 text-warning"></i>الإنجازات</h2></div>
+                <ul class="list-group list-group-flush">
+                    @foreach (var a in Model.Achievements)
+                    {
+                        <li class="list-group-item bg-transparent"><div class="fw-semibold">@a.TitleAr <span class="text-muted small">(@a.Year)</span></div>@if (a.Description != null) { <div class="small text-muted">@a.Description</div> }</li>
+                    }
+                </ul>
+            </div>
+        }
+    </div>
+</div>

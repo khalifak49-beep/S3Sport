@@ -1,0 +1,49 @@
+@model RegisterViewModel
+@{
+    ViewData["Title"] = "إنشاء حساب";
+}
+<div class="auth-wrap">
+    <div class="s3-card">
+        <div class="s3-card-body">
+            <h1 class="h4 fw-bold mb-1">إنشاء حساب جديد</h1>
+            <p class="text-muted mb-4">تابع فرق منطقتك وسجّل فريقك في المنصة</p>
+            <form asp-action="Register" method="post" novalidate>
+                <input type="hidden" asp-for="ReturnUrl" />
+                <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+                <div class="mb-3">
+                    <label asp-for="FullName" class="form-label"></label>
+                    <input asp-for="FullName" class="form-control" autocomplete="name" autofocus />
+                    <span asp-validation-for="FullName" class="field-validation-error"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="Email" class="form-label"></label>
+                    <input asp-for="Email" class="form-control ltr" autocomplete="email" />
+                    <span asp-validation-for="Email" class="field-validation-error"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="PhoneNumber" class="form-label"></label>
+                    <input asp-for="PhoneNumber" class="form-control ltr" autocomplete="tel" placeholder="9XXXXXXX" />
+                    <span asp-validation-for="PhoneNumber" class="field-validation-error"></span>
+                </div>
+                <div class="row g-3 mb-4">
+                    <div class="col-sm-6">
+                        <label asp-for="Password" class="form-label"></label>
+                        <input asp-for="Password" class="form-control ltr" autocomplete="new-password" />
+                        <span asp-validation-for="Password" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <label asp-for="ConfirmPassword" class="form-label"></label>
+                        <input asp-for="ConfirmPassword" class="form-control ltr" autocomplete="new-password" />
+                        <span asp-validation-for="ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                    <div class="col-12 form-text mt-1">8 أحرف على الأقل، وتحتوي على رقم واحد على الأقل.</div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 py-2">إنشاء الحساب</button>
+            </form>
+            <p class="text-center text-muted mt-4 mb-0">
+                لديك حساب؟ <a asp-action="Login" asp-route-returnUrl="@Model.ReturnUrl">سجّل الدخول</a>
+            </p>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

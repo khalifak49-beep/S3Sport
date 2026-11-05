@@ -1,0 +1,71 @@
+@model FollowButtonViewModel
+@* Follow controls for one target. Forms with class "js-follow" are submitted with fetch by site.js and this
+   partial is swapped in place; without JavaScript they post normally and redirect back. *@
+@{
+    // Where a no-JavaScript post returns to: the current page, or (when re-rendered via fetch) the page that asked.
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    if (Context.Request.Headers.XRequestedWith == "fetch")
+        returnUrl = Uri.TryCreate(Context.Request.Headers.Referer.ToString(), UriKind.Absolute, out var referer) ? referer.PathAndQuery : "/";
+}
+<div class="follow-box @(Model.Compact ? "follow-compact" : "")" data-follow-box>
+    @if (!Model.IsAuthenticated)
+    {
+        <a class="btn @(Model.Compact ? "btn-soft btn-icon btn-sm follow-star" : "btn-primary")" asp-controller="Account" asp-action="Login" asp-route-returnUrl="@returnUrl"
+           title="سجّل الدخول للمتابعة" aria-label="متابعة">
+            <i class="fa-regular fa-star"></i>@if (!Model.Compact) { <span class="me-1">متابعة</span> }
+        </a>
+    }
+    else if (!Model.IsFollowing)
+    {
+        <form asp-controller="Follows" asp-action="Follow" method="post" class="js-follow">
+            <input type="hidden" name="targetType" value="@Model.TargetType" />
+            <input type="hidden" name="targetId" value="@Model.TargetId" />
+            <input type="hidden" name="compact" value="@Model.Compact.ToString().ToLowerInvariant()" />
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            @if (Model.Compact)
+            {
+                <button type="submit" class="btn btn-soft btn-icon btn-sm follow-star" title="متابعة" aria-label="متابعة"><i class="fa-regular fa-star"></i></button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-primary"><i class="fa-regular fa-star me-1"></i>متابعة</button>
+            }
+        </form>
+    }
+    else
+    {
+        <form asp-controller="Follows" asp-action="Unfollow" method="post" class="js-follow">
+            <input type="hidden" name="targetType" value="@Model.TargetType" />
+            <input type="hidden" name="targetId" value="@Model.TargetId" />
+            <input type="hidden" name="compact" value="@Model.Compact.ToString().ToLowerInvariant()" />
+            <input type="hidden" name="returnUrl" value="@returnUrl" />
+            @if (Model.Compact)
+            {
+                <button type="submit" class="btn btn-soft btn-icon btn-sm follow-star is-on" title="إلغاء المتابعة" aria-label="إلغاء المتابعة"><i class="fa-solid fa-star"></i></button>
+            }
+            else
+            {
+                <button type="submit" class="btn btn-soft is-following" title="إلغاء المتابعة">
+                    <i class="fa-solid fa-star me-1"></i><span class="label-on">متابَع</span><span class="label-off">إلغاء المتابعة</span>
+                </button>
+            }
+        </form>
+        @if (!Model.Compact)
+        {
+            <form asp-controller="Follows" asp-action="ToggleNotifications" method="post" class="js-follow">
+                <input type="hidden" name="targetType" value="@Model.TargetType" />
+                <input type="hidden" name="targetId" value="@Model.TargetId" />
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <button type="submit" class="btn btn-soft btn-icon bell-toggle @(Model.NotificationsEnabled ? "is-on" : "")"
+                        title="@(Model.NotificationsEnabled ? "الإشعارات مفعّلة — اضغط للإيقاف" : "الإشعارات متوقفة — اضغط للتفعيل")"
+                        aria-label="@(Model.NotificationsEnabled ? "إيقاف الإشعارات" : "تفعيل الإشعارات")" aria-pressed="@Model.NotificationsEnabled.ToString().ToLowerInvariant()">
+                    <i class="fa-@(Model.NotificationsEnabled ? "solid fa-bell" : "regular fa-bell-slash")"></i>
+                </button>
+            </form>
+        }
+    }
+    @if (!Model.Compact && Model.FollowersCount >= 0)
+    {
+        <span class="follow-count"><strong>@Model.FollowersCount</strong> متابع</span>
+    }
+</div>

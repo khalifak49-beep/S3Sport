@@ -1,0 +1,29 @@
+@model NewsListViewModel
+@{
+    ViewData["Title"] = "الأخبار";
+}
+<div class="mb-3">
+    <h1 class="page-title">الأخبار</h1>
+    <p class="page-subtitle">أخبار الفرق والبطولات والنتائج والانتقالات.</p>
+</div>
+<div class="status-tabs mb-3">
+    <a asp-action="Index" class="@(Model.Category == null ? "active" : "")">الكل</a>
+    @foreach (var c in Enum.GetValues<NewsCategory>())
+    {
+        <a asp-action="Index" asp-route-category="@c" class="@(Model.Category == c ? "active" : "")">@c.GetDisplayName()</a>
+    }
+</div>
+@if (Model.Results.TotalCount == 0)
+{
+    <div class="s3-card empty-state"><i class="fa-regular fa-newspaper d-block"></i><p class="mb-0">لا توجد أخبار بعد.</p></div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var n in Model.Results.Items)
+        {
+            <div class="col-12 col-sm-6 col-lg-4"><partial name="_NewsCard" model="n" /></div>
+        }
+    </div>
+    <div class="s3-card mt-3 pager-standalone"><partial name="_Pager" model="Model.Results" /></div>
+}

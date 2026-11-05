@@ -1,0 +1,18 @@
+@{
+    var code = ViewData["Code"] as int? ?? 500;
+    var (title, message, icon) = code switch
+    {
+        404 => ("الصفحة غير موجودة", "ربما تم نقل الصفحة أو أن الرابط غير صحيح.", "fa-map-signs"),
+        403 => ("غير مصرح", "لا تملك صلاحية الوصول إلى هذه الصفحة.", "fa-lock"),
+        400 => ("طلب غير صالح", "تعذر معالجة الطلب. تحقق من البيانات وحاول مجدداً.", "fa-circle-exclamation"),
+        _ => ("حدث خطأ", "حدث خطأ غير متوقع. حاول مرة أخرى لاحقاً.", "fa-triangle-exclamation")
+    };
+    ViewData["Title"] = title;
+}
+<div class="s3-card empty-state my-5 mx-auto" style="max-width:520px">
+    <i class="fa-solid @icon d-block"></i>
+    <div class="display-6 fw-bold text-body mb-2 ltr">@code</div>
+    <h1 class="h4 text-body">@title</h1>
+    <p>@message</p>
+    <a class="btn btn-primary" asp-area="" asp-controller="Home" asp-action="Index">العودة للرئيسية</a>
+</div>

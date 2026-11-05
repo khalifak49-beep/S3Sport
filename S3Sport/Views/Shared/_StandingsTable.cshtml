@@ -1,0 +1,61 @@
+@model StandingsTableView
+@* League / group table. Rows that qualify (group stages) are highlighted. *@
+<div class="table-responsive">
+    <table class="table standings-table mb-0">
+        @if (!string.IsNullOrEmpty(Model.Title))
+        {
+            <caption class="standings-caption">@Model.Title</caption>
+        }
+        <thead>
+            <tr>
+                <th class="text-center" title="المركز">#</th>
+                <th>الفريق</th>
+                <th class="text-center" title="لعب">ل</th>
+                <th class="text-center" title="فوز">ف</th>
+                <th class="text-center" title="تعادل">ت</th>
+                <th class="text-center" title="خسارة">خ</th>
+                <th class="text-center d-none d-sm-table-cell" title="له">له</th>
+                <th class="text-center d-none d-sm-table-cell" title="عليه">عليه</th>
+                <th class="text-center" title="فارق الأهداف">±</th>
+                <th class="text-center" title="النقاط">نقاط</th>
+                <th class="text-center d-none d-md-table-cell">آخر النتائج</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model.Rows)
+            {
+                <tr class="@(r.Qualifies ? "qualifies" : "")">
+                    <td class="text-center fw-semibold">@r.Position</td>
+                    <td>
+                        <a class="d-flex align-items-center gap-2 text-reset" asp-area="" asp-controller="Teams" asp-action="Details" asp-route-slug="@r.TeamSlug">
+                            @Html.EntityLogo(r.TeamLogo, r.TeamName, 26)
+                            <span class="text-truncate">@r.TeamName</span>
+                        </a>
+                    </td>
+                    <td class="text-center">@r.Played</td>
+                    <td class="text-center">@r.Won</td>
+                    <td class="text-center">@r.Drawn</td>
+                    <td class="text-center">@r.Lost</td>
+                    <td class="text-center d-none d-sm-table-cell">@r.GoalsFor</td>
+                    <td class="text-center d-none d-sm-table-cell">@r.GoalsAgainst</td>
+                    <td class="text-center ltr">@(r.GoalDifference > 0 ? "+" : "")@r.GoalDifference</td>
+                    <td class="text-center fw-bold">
+                        @r.Points
+                        @if (r.PointsAdjustment != 0)
+                        {
+                            <sup class="text-danger ltr" title="تعديل من المنظم">@(r.PointsAdjustment > 0 ? "+" : "")@r.PointsAdjustment</sup>
+                        }
+                    </td>
+                    <td class="text-center d-none d-md-table-cell">
+                        <span class="form-guide">
+                            @foreach (var c in (r.Form ?? ""))
+                            {
+                                <span class="form-@c" title="@(c == 'W' ? "فوز" : c == 'D' ? "تعادل" : "خسارة")">@(c == 'W' ? "ف" : c == 'D' ? "ت" : "خ")</span>
+                            }
+                        </span>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

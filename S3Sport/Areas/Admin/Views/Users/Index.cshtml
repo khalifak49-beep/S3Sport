@@ -1,0 +1,81 @@
+@model UserListViewModel
+@{
+    ViewData["Title"] = "إدارة المستخدمين";
+}
+
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث بالاسم أو البريد أو الهاتف..." />
+            <select name="role" class="form-select" data-autosubmit aria-label="الدور">
+                <option value="">كل الأدوار</option>
+                @foreach (var r in AppRoles.All)
+                {
+                    <option value="@r" selected="@(Model.Role == r)">@AppRoles.DisplayNames[r]</option>
+                }
+            </select>
+            <select name="active" class="form-select" data-autosubmit aria-label="الحالة">
+                <option value="">كل الحالات</option>
+                <option value="true" selected="@(Model.Active == true)">نشط</option>
+                <option value="false" selected="@(Model.Active == false)">موقوف</option>
+            </select>
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+    </div>
+
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-users d-block"></i><p class="mb-0">لا يوجد مستخدمون مطابقون.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>المستخدم</th><th>الأدوار</th><th>التسجيل</th><th>آخر دخول</th><th>الحالة</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var u in Model.Results.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="fw-semibold">@u.FullName</div>
+                                <div class="small text-muted ltr">@u.Email</div>
+                            </td>
+                            <td>
+                                @foreach (var r in u.Roles.Where(r => r != AppRoles.User))
+                                {
+                                    <span class="badge text-bg-secondary ms-1">@AppRoles.DisplayNames.GetValueOrDefault(r, r)</span>
+                                }
+                                @if (u.Roles.All(r => r == AppRoles.User)) { <span class="text-muted small">مستخدم</span> }
+                            </td>
+                            <td class="text-nowrap">@u.CreatedAt.ToMuscatString("yyyy/MM/dd")</td>
+                            <td class="text-nowrap">@u.LastLoginAt.ToMuscatString()</td>
+                            <td>
+                                @if (!u.IsActive) { <span class="badge text-bg-secondary">موقوف</span> }
+                                else if (u.IsLockedOut) { <span class="badge text-bg-warning">مقفل مؤقتاً</span> }
+                                else { <span class="badge text-bg-success">نشط</span> }
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-soft btn-sm" asp-action="Roles" asp-route-id="@u.Id" title="الصلاحيات"><i class="fa-solid fa-user-shield"></i></a>
+                                    @if (u.IsLockedOut)
+                                    {
+                                        <form asp-action="Unlock" asp-route-id="@u.Id" method="post">
+                                            <button class="btn btn-soft btn-sm" type="submit" title="فك القفل"><i class="fa-solid fa-unlock"></i></button>
+                                        </form>
+                                    }
+                                    <form asp-action="ToggleActive" asp-route-id="@u.Id" method="post"
+                                          data-confirm="@(u.IsActive ? "إيقاف الحساب؟" : "تفعيل الحساب؟")" data-confirm-text="@u.FullName" data-confirm-danger="@(u.IsActive ? "" : null)">
+                                        <button class="btn btn-soft btn-sm @(u.IsActive ? "text-danger" : "text-success")" type="submit" title="@(u.IsActive ? "إيقاف" : "تفعيل")">
+                                            <i class="fa-solid @(u.IsActive ? "fa-user-slash" : "fa-user-check")"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

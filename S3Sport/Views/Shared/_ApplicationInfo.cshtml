@@ -1,0 +1,27 @@
+@model TeamApplicationDetailsViewModel
+<dl class="info-list">
+    <dt>الرياضة</dt><dd>@Model.SportName</dd>
+    <dt>المحافظة</dt><dd>@Model.GovernorateName</dd>
+    <dt>الولاية</dt><dd>@Model.WilayatName</dd>
+    <dt>المنطقة</dt>
+    <dd>
+        @Model.AreaName
+        @if (Model.IsProposedArea)
+        {
+            <span class="badge text-bg-info ms-1">منطقة جديدة مقترحة</span>
+        }
+    </dd>
+    @if (Model.VillageName != null)
+    {
+        <dt>القرية</dt><dd>@Model.VillageName</dd>
+    }
+    @if (Model.AdditionalAreas.Count > 0)
+    {
+        <dt>مناطق إضافية</dt><dd>@string.Join("، ", Model.AdditionalAreas)</dd>
+    }
+    <dt>سنة التأسيس</dt><dd>@(Model.FoundedYear?.ToString() ?? "—")</dd>
+    <dt>رقم التواصل</dt><dd class="ltr">@Model.ContactPhone</dd>
+    <dt>البريد الإلكتروني</dt><dd class="ltr">@(Model.ContactEmail ?? "—")</dd>
+    <dt>تاريخ التقديم</dt><dd>@Model.SubmittedAt.ToMuscatString()</dd>
+    <dt>نبذة</dt><dd style="white-space:pre-line">@(Model.Description ?? "—")</dd>
+</dl>

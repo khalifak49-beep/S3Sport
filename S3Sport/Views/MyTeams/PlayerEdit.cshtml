@@ -1,0 +1,21 @@
+@model PlayerFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? $"لاعب جديد — {Model.TeamName}" : $"تعديل: {Model.FullNameAr}";
+}
+<div class="s3-card mx-auto" style="max-width:900px">
+    <div class="s3-card-header"><h2>@ViewData["Title"]</h2></div>
+    <div class="s3-card-body">
+        <form asp-action="SavePlayer" method="post" enctype="multipart/form-data" novalidate>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="RowVersion" />
+            <input type="hidden" asp-for="JoinedOn" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+            <partial name="_PlayerFormFields" model="Model" />
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">حفظ</button>
+                <a class="btn btn-soft" asp-action="Squad" asp-route-id="@Model.TeamId">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

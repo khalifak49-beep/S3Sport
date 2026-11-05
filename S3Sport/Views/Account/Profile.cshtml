@@ -1,0 +1,50 @@
+@model ProfileViewModel
+@{
+    ViewData["Title"] = "حسابي";
+}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <div class="s3-card mb-3">
+            <div class="s3-card-header">
+                <h2><i class="fa-regular fa-id-card me-1"></i>بياناتي</h2>
+                <a class="btn btn-soft btn-sm" asp-action="ChangePassword"><i class="fa-solid fa-key me-1"></i>تغيير كلمة المرور</a>
+            </div>
+            <div class="s3-card-body">
+                <form asp-action="Profile" method="post" novalidate>
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+                    <div class="mb-3">
+                        <label asp-for="Email" class="form-label"></label>
+                        <input asp-for="Email" class="form-control ltr" disabled />
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="FullName" class="form-label"></label>
+                        <input asp-for="FullName" class="form-control" />
+                        <span asp-validation-for="FullName" class="field-validation-error"></span>
+                    </div>
+                    <div class="mb-4">
+                        <label asp-for="PhoneNumber" class="form-label"></label>
+                        <input asp-for="PhoneNumber" class="form-control ltr" />
+                        <span asp-validation-for="PhoneNumber" class="field-validation-error"></span>
+                    </div>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </form>
+            </div>
+        </div>
+        <div class="s3-card">
+            <div class="s3-card-body">
+                <dl class="info-list">
+                    <dt>الأدوار</dt>
+                    <dd>
+                        @foreach (var role in Model.Roles)
+                        {
+                            <span class="badge text-bg-secondary ms-1">@(AppRoles.DisplayNames.GetValueOrDefault(role, role))</span>
+                        }
+                    </dd>
+                    <dt>تاريخ التسجيل</dt>
+                    <dd>@Model.CreatedAt.ToMuscatString("yyyy/MM/dd")</dd>
+                </dl>
+            </div>
+        </div>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

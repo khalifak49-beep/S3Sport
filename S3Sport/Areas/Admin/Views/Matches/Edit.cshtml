@@ -1,0 +1,111 @@
+@model MatchFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "جدولة مباراة" : "تعديل مباراة";
+    var statuses = new[] { MatchStatus.Scheduled, MatchStatus.Postponed, MatchStatus.Cancelled, MatchStatus.Finished };
+}
+<div class="s3-card mx-auto" style="max-width:960px">
+    <div class="s3-card-header">
+        <h2>@ViewData["Title"]</h2>
+        @if (Model.Id != 0)
+        {
+            <a class="btn btn-soft btn-sm" asp-area="" asp-controller="MatchControl" asp-action="Index" asp-route-id="@Model.Id"><i class="fa-solid fa-tower-broadcast me-1"></i>شاشة المباراة المباشرة</a>
+        }
+    </div>
+    <div class="s3-card-body">
+        @if (Model.HasStarted)
+        {
+            <div class="alert alert-info">سُجلت أحداث لهذه المباراة؛ النتيجة تُحسب من الأحداث وتُدار من شاشة المباراة المباشرة.</div>
+        }
+        <form asp-action="Save" method="post" novalidate id="matchForm">
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="RowVersion" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label asp-for="CompetitionSeasonId" class="form-label"></label>
+                    @if (Model.Id == 0 && Model.CompetitionSeasonId == null && User.IsAdmin())
+                    {
+                        <select asp-for="CompetitionSeasonId" asp-items="Model.Editions" class="form-select" onchange="location.href='?editionId='+this.value"><option value="">مباراة ودية</option></select>
+                    }
+                    else
+                    {
+                        <input type="hidden" asp-for="CompetitionSeasonId" />
+                        <div class="form-control-plaintext fw-semibold">@(Model.Editions.FirstOrDefault(e => e.Value == Model.CompetitionSeasonId?.ToString())?.Text ?? "مباراة ودية")</div>
+                    }
+                </div>
+                @if (Model.CompetitionSeasonId != null)
+                {
+                    <div class="col-md-3"><label asp-for="StageId" class="form-label"></label><select asp-for="StageId" asp-items="Model.Stages" class="form-select"><option value="">—</option></select><span asp-validation-for="StageId" class="field-validation-error"></span></div>
+                    <div class="col-md-3"><label asp-for="GroupId" class="form-label"></label><select asp-for="GroupId" asp-items="Model.Groups" class="form-select"><option value="">—</option></select><span asp-validation-for="GroupId" class="field-validation-error"></span></div>
+                    <div class="col-md-3"><label asp-for="RoundNumber" class="form-label"></label><input asp-for="RoundNumber" type="number" min="1" class="form-control" /></div>
+                    <div class="col-md-3"><label asp-for="RoundName" class="form-label"></label><input asp-for="RoundName" class="form-control" placeholder="الجولة 1 / نصف النهائي" /></div>
+                }
+                <div class="col-md-6"><label asp-for="HomeTeamId" class="form-label"></label><select asp-for="HomeTeamId" asp-items="Model.Teams" class="form-select" disabled="@Model.HasStarted"><option value="0">اختر</option></select><span asp-validation-for="HomeTeamId" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="AwayTeamId" class="form-label"></label><select asp-for="AwayTeamId" asp-items="Model.Teams" class="form-select" disabled="@Model.HasStarted"><option value="0">اختر</option></select><span asp-validation-for="AwayTeamId" class="field-validation-error"></span></div>
+                @if (Model.HasStarted)
+                {
+                    <input type="hidden" asp-for="HomeTeamId" /><input type="hidden" asp-for="AwayTeamId" />
+                }
+                <div class="col-md-4"><label asp-for="KickoffLocal" class="form-label"></label><input asp-for="KickoffLocal" type="datetime-local" class="form-control" /><span asp-validation-for="KickoffLocal" class="field-validation-error"></span></div>
+                <div class="col-md-4"><label asp-for="VenueId" class="form-label"></label><select asp-for="VenueId" asp-items="Model.Venues" class="form-select"><option value="">—</option></select></div>
+                <div class="col-md-4">
+                    <label asp-for="Status" class="form-label"></label>
+                    <select asp-for="Status" class="form-select" id="statusSelect">
+                        @foreach (var s in statuses) { <option value="@s">@s.GetDisplayName()@(s == MatchStatus.Finished && !Model.HasStarted ? " (إدخال النتيجة يدوياً)" : "")</option> }
+                        @if (!statuses.Contains(Model.Status)) { <option value="@Model.Status" selected>@Model.Status.GetDisplayName()</option> }
+                    </select>
+                    <span asp-validation-for="Status" class="field-validation-error"></span>
+                </div>
+
+                @if (!Model.HasStarted)
+                {
+                    <div class="col-12 @(Model.Status == MatchStatus.Finished ? "" : "d-none")" id="resultBox">
+                        <div class="proposed-area">
+                            <div class="fw-semibold mb-2">النتيجة النهائية (لمباراة لم تُغطَّ مباشرة)</div>
+                            <div class="row g-2">
+                                <div class="col-3"><label asp-for="ResultHome" class="form-label small"></label><input asp-for="ResultHome" type="number" min="0" class="form-control" /></div>
+                                <div class="col-3"><label asp-for="ResultAway" class="form-label small"></label><input asp-for="ResultAway" type="number" min="0" class="form-control" /></div>
+                                <div class="col-3"><label asp-for="PenaltyHome" class="form-label small"></label><input asp-for="PenaltyHome" type="number" min="0" class="form-control" /></div>
+                                <div class="col-3"><label asp-for="PenaltyAway" class="form-label small"></label><input asp-for="PenaltyAway" type="number" min="0" class="form-control" /></div>
+                            </div>
+                            <span asp-validation-for="ResultHome" class="field-validation-error"></span>
+                            <span asp-validation-for="PenaltyHome" class="field-validation-error"></span>
+                            <div class="form-text">ركلات الترجيح للمباريات الإقصائية المتعادلة فقط.</div>
+                        </div>
+                    </div>
+                }
+
+                <div class="col-12"><hr class="my-1" /></div>
+                <div class="col-md-4"><label asp-for="RefereeName" class="form-label"></label><input asp-for="RefereeName" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Assistant1Name" class="form-label"></label><input asp-for="Assistant1Name" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="Assistant2Name" class="form-label"></label><input asp-for="Assistant2Name" class="form-control" /></div>
+                <div class="col-md-6">
+                    <label asp-for="OperatorUserId" class="form-label"></label>
+                    <select asp-for="OperatorUserId" asp-items="Model.Operators" class="form-select"><option value="">— (مسؤولو البطولة والمدراء فقط)</option></select>
+                    <span asp-validation-for="OperatorUserId" class="field-validation-error"></span>
+                </div>
+                <div class="col-md-6"><label asp-for="Notes" class="form-label"></label><input asp-for="Notes" class="form-control" placeholder="سبب التأجيل مثلاً" /></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">حفظ</button>
+                <a class="btn btn-soft" href="javascript:history.back()">رجوع</a>
+            </div>
+        </form>
+        @if (Model.Id != 0 && !Model.HasStarted)
+        {
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="mt-3" data-confirm="حذف المباراة؟" data-confirm-danger>
+                <button class="btn btn-soft text-danger btn-sm" type="submit"><i class="fa-regular fa-trash-can me-1"></i>حذف المباراة</button>
+            </form>
+        }
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const status = document.getElementById('statusSelect');
+            const box = document.getElementById('resultBox');
+            if (status && box) status.addEventListener('change', () => box.classList.toggle('d-none', status.value !== 'Finished'));
+        })();
+    </script>
+}

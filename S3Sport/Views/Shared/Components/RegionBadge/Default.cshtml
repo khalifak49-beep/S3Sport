@@ -1,0 +1,6 @@
+@model string?
+<a class="region-chip" asp-area="" asp-controller="Region" asp-action="Index" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)" title="تغيير المنطقة">
+    <i class="fa-solid fa-location-dot"></i>
+    <span class="text-truncate">@(Model ?? "اختر منطقتك")</span>
+    <i class="fa-solid fa-chevron-down small opacity-75"></i>
+</a>

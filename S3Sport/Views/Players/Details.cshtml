@@ -1,0 +1,39 @@
+@model PlayerDetailsViewModel
+@{
+    ViewData["Title"] = Model.FullNameAr;
+}
+<section class="s3-card mb-3">
+    <div class="team-hero-body">
+        @Html.EntityLogo(Model.PhotoPath, Model.FullNameAr, 96)
+        <div class="flex-grow-1 min-w-0">
+            <h1 class="team-title">@Model.FullNameAr</h1>
+            @if (Model.FullNameEn != null) { <div class="text-muted ltr">@Model.FullNameEn</div> }
+            <div class="team-meta">
+                @if (Model.CurrentTeamSlug != null)
+                {
+                    <a class="text-reset" href="/teams/@Model.CurrentTeamSlug">@Html.EntityLogo(Model.CurrentTeamLogo, Model.CurrentTeamName!, 20) @Model.CurrentTeamName</a>
+                }
+                else { <span>لاعب حر</span> }
+                @if (Model.ShirtNumber != null) { <span>#@Model.ShirtNumber</span> }
+                @if (Model.Position != null) { <span>@Model.Position</span> }
+                @if (Model.Age != null) { <span>@Model.Age سنة</span> }
+                @if (Model.Nationality != null) { <span>@Model.Nationality</span> }
+            </div>
+        </div>
+        <div class="team-hero-actions">
+            <partial name="_FollowButton" model="Model.Follow" />
+            @if (Model.CanAdminEdit) { <a class="btn btn-soft btn-sm" asp-area="Admin" asp-controller="Players" asp-action="Details" asp-route-id="@Model.Id"><i class="fa-solid fa-pen me-1"></i>إدارة</a> }
+        </div>
+    </div>
+    <div class="comp-kpis">
+        <div><span class="stat-value">@Model.TotalAppearances</span><span class="stat-label">مشاركة</span></div>
+        <div><span class="stat-value">@Model.TotalGoals</span><span class="stat-label">هدف</span></div>
+        <div><span class="stat-value">@Model.TotalAssists</span><span class="stat-label">صناعة</span></div>
+        <div><span class="stat-value">@Model.Stats.Sum(s => s.YellowCards)<small class="text-muted fs-6"> / @Model.Stats.Sum(s => s.RedCards)</small></span><span class="stat-label">إنذار / طرد</span></div>
+    </div>
+</section>
+@if (!string.IsNullOrWhiteSpace(Model.Bio))
+{
+    <div class="s3-card mb-3"><div class="s3-card-body" style="white-space:pre-line">@Model.Bio</div></div>
+}
+<partial name="_PlayerCareer" model="Model" />

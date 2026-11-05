@@ -1,0 +1,202 @@
+@model OperatorViewModel
+@{
+    ViewData["Title"] = $"إدارة المباراة: {Model.HomeName} × {Model.AwayName}";
+    var allPlayers = Model.HomeSquad.Concat(Model.AwaySquad).ToList();
+}
+
+<div id="op" data-match-page="@Model.MatchId" data-match-id="@Model.MatchId"
+     data-home-team="@Model.HomeTeamId" data-away-team="@Model.AwayTeamId" data-knockout="@(Model.IsKnockout ? "1" : "0")"
+     data-home-guest="@(Model.HomeIsGuest ? "1" : "0")" data-away-guest="@(Model.AwayIsGuest ? "1" : "0")">
+    @Html.AntiForgeryToken()
+    <script type="application/json" id="opState">@Json.Serialize(Model.Live)</script>
+    <script type="application/json" id="opHomeSquad">@Json.Serialize(Model.HomeSquad)</script>
+    <script type="application/json" id="opAwaySquad">@Json.Serialize(Model.AwaySquad)</script>
+
+    <!-- Scoreboard -->
+    <section class="s3-card scoreboard mb-3" data-live-match="@Model.MatchId" data-status="@Model.Live.Status" data-period="@Model.Live.Period"
+             data-period-start="@Model.Live.PeriodStartedAt" data-period-duration="@Model.Live.PeriodDurationMinutes">
+        <div class="scoreboard-meta">@Model.CompetitionName @(Model.RoundName != null ? "· " + Model.RoundName : "") @(Model.VenueName != null ? "· " + Model.VenueName : "")</div>
+        <div class="scoreboard-row">
+            <div class="sb-team">@Html.EntityLogo(Model.HomeLogo, Model.HomeName, 56)<span class="sb-name" data-side-name="home">@Model.HomeName</span></div>
+            <div class="sb-score">
+                <div class="sb-digits"><span data-home-score>@Model.Live.HomeScore</span> - <span data-away-score>@Model.Live.AwayScore</span></div>
+                <div class="sb-pens small d-none" data-pens></div>
+                <div class="sb-status"><span class="live-dot me-1 d-none" data-live-dot></span><span data-status>@Model.Live.StatusText</span> <span class="sb-minute d-none" data-minute></span></div>
+            </div>
+            <div class="sb-team">@Html.EntityLogo(Model.AwayLogo, Model.AwayName, 56)<span class="sb-name" data-side-name="away">@Model.AwayName</span></div>
+        </div>
+        <div class="text-center pb-3" id="stateAction"></div>
+    </section>
+
+    <!-- Event buttons -->
+    <section class="row g-3 mb-3" id="eventPads">
+        @foreach (var (side, name) in new[] { ("home", Model.HomeName), ("away", Model.AwayName) })
+        {
+            <div class="col-6">
+                <div class="s3-card p-2 h-100">
+                    <div class="fw-semibold text-center small mb-2 text-truncate">@name</div>
+                    <div class="event-pad">
+                        <button type="button" class="btn ev-btn ev-goal" data-event="Goal" data-side="@side"><i class="fa-solid fa-futbol"></i><span>هدف</span></button>
+                        <button type="button" class="btn ev-btn ev-yellow" data-event="YellowCard" data-side="@side"><span class="card-icon yellow"></span><span>إنذار</span></button>
+                        <button type="button" class="btn ev-btn ev-red" data-event="RedCard" data-side="@side"><span class="card-icon red"></span><span>طرد</span></button>
+                        <button type="button" class="btn ev-btn" data-event="Substitution" data-side="@side"><i class="fa-solid fa-right-left"></i><span>تبديل</span></button>
+                        <button type="button" class="btn ev-btn" data-event="PenaltyGoal" data-side="@side"><i class="fa-solid fa-bullseye"></i><span>جزاء</span></button>
+                        <button type="button" class="btn ev-btn" data-event="OwnGoal" data-side="@side"><i class="fa-solid fa-rotate-left"></i><span>عكسي</span></button>
+                        <button type="button" class="btn ev-btn" data-event="SecondYellowCard" data-side="@side"><span class="card-icon yellow"></span><span class="card-icon red"></span><span>إنذار ثانٍ</span></button>
+                        <button type="button" class="btn ev-btn" data-event="MissedPenalty" data-side="@side"><i class="fa-solid fa-xmark"></i><span>جزاء ضائع</span></button>
+                    </div>
+                </div>
+            </div>
+        }
+    </section>
+
+    <!-- Timeline -->
+    <section class="s3-card mb-3">
+        <div class="s3-card-header"><h2><i class="fa-solid fa-list me-1"></i>أحداث المباراة</h2><span class="small text-muted">التصحيحات تُحفظ في السجل</span></div>
+        <ul class="list-group list-group-flush op-timeline" id="timeline"></ul>
+    </section>
+
+    <div class="row g-3">
+        <!-- Lineups -->
+        <div class="col-lg-7">
+            <details class="s3-card mb-3" @(Model.Status == MatchStatus.Scheduled ? "open" : "")>
+                <summary class="s3-card-header"><h2><i class="fa-solid fa-people-group me-1"></i>التشكيلة</h2><span class="small text-muted">أساسي / احتياط</span></summary>
+                <form asp-action="SaveLineup" asp-route-id="@Model.MatchId" method="post" class="s3-card-body">
+                    <div class="row g-3">
+                        @foreach (var (side, squad, name) in new[] { ("home", Model.HomeSquad, Model.HomeName), ("away", Model.AwaySquad, Model.AwayName) })
+                        {
+                            <div class="col-md-6">
+                                <div class="fw-semibold mb-2">@name</div>
+                                @if (squad.Count == 0) { <div class="small text-muted">لا يوجد لاعبون مسجلون في الفريق.</div> }
+                                @foreach (var p in squad)
+                                {
+                                    <div class="lineup-row">
+                                        <span class="shirt-number">@(p.Number?.ToString() ?? "—")</span>
+                                        <span class="flex-grow-1 text-truncate">@p.Name</span>
+                                        <label class="btn btn-sm btn-soft lineup-toggle"><input type="checkbox" name="@(side)Starters" value="@p.Id" checked="@p.IsStarter" class="d-none" />أساسي</label>
+                                        <label class="btn btn-sm btn-soft lineup-toggle"><input type="checkbox" name="@(side)Bench" value="@p.Id" checked="@(p.InLineup && !p.IsStarter)" class="d-none" />احتياط</label>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                    <button class="btn btn-primary mt-3" type="submit">حفظ التشكيلة</button>
+                </form>
+            </details>
+        </div>
+        <!-- Report -->
+        <div class="col-lg-5">
+            <details class="s3-card mb-3" @(Model.Status == MatchStatus.Finished ? "open" : "")>
+                <summary class="s3-card-header"><h2><i class="fa-solid fa-clipboard me-1"></i>تقرير المباراة</h2></summary>
+                <form asp-action="SaveReport" asp-route-id="@Model.MatchId" method="post" class="s3-card-body">
+                    <label class="form-label" for="bestPlayerId">أفضل لاعب</label>
+                    <select id="bestPlayerId" name="bestPlayerId" class="form-select mb-2">
+                        <option value="">—</option>
+                        <optgroup label="@Model.HomeName">@foreach (var p in Model.HomeSquad) { <option value="@p.Id" selected="@(p.Id == Model.BestPlayerId)">@p.Name</option> }</optgroup>
+                        <optgroup label="@Model.AwayName">@foreach (var p in Model.AwaySquad) { <option value="@p.Id" selected="@(p.Id == Model.BestPlayerId)">@p.Name</option> }</optgroup>
+                    </select>
+                    <label class="form-label" for="attendance">الحضور الجماهيري</label>
+                    <input id="attendance" name="attendance" type="number" min="0" class="form-control mb-2" value="@Model.Attendance" />
+                    <label class="form-label" for="summary">ملخص</label>
+                    <textarea id="summary" name="summary" class="form-control mb-2" rows="3" maxlength="4000">@Model.Summary</textarea>
+                    <button class="btn btn-primary" type="submit">حفظ التقرير</button>
+                </form>
+            </details>
+            @if (Model.Revisions.Count > 0)
+            {
+                <details class="s3-card mb-3">
+                    <summary class="s3-card-header"><h2><i class="fa-solid fa-clock-rotate-left me-1"></i>سجل التصحيحات (@Model.Revisions.Count)</h2></summary>
+                    <ul class="list-group list-group-flush small">
+                        @foreach (var r in Model.Revisions)
+                        {
+                            <li class="list-group-item bg-transparent">
+                                <div><span class="badge text-bg-secondary">@r.Action.GetDisplayName()</span> حدث #@r.EventId — @r.ChangedBy <span class="text-muted">@r.CreatedAt.ToMuscatString("HH:mm")</span></div>
+                                <div class="text-muted">@r.Reason</div>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Event modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content s3-card" id="eventForm" novalidate>
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="eventModalTitle">حدث</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="EventType" />
+                <input type="hidden" name="TeamId" />
+                <input type="hidden" name="ClientRequestId" />
+                <div class="mb-3" id="playerField">
+                    <label class="form-label" for="evPlayer" id="evPlayerLabel">اللاعب</label>
+                    <select class="form-select" id="evPlayer" name="PlayerId"></select>
+                    <input class="form-control d-none" id="evPlayerText" name="PlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled />
+                </div>
+                <div class="mb-3" id="relatedField">
+                    <label class="form-label" for="evRelated" id="evRelatedLabel">صانع الهدف (اختياري)</label>
+                    <select class="form-select" id="evRelated" name="RelatedPlayerId"></select>
+                    <input class="form-control d-none" id="evRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled />
+                </div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="form-label" for="evMinute">الدقيقة</label><input class="form-control" id="evMinute" name="Minute" type="number" min="0" max="200" /></div>
+                    <div class="col-6"><label class="form-label" for="evExtra">وقت بدل ضائع (+)</label><input class="form-control" id="evExtra" name="ExtraMinute" type="number" min="0" max="30" /></div>
+                </div>
+                <div class="row g-2 mb-3 d-none" id="penaltyFields">
+                    <div class="col-12 small text-muted">مباراة إقصائية متعادلة: أدخل نتيجة ركلات الترجيح.</div>
+                    <div class="col-6"><label class="form-label" for="evPenHome">ترجيح @Model.HomeName</label><input class="form-control" id="evPenHome" name="HomePenaltyScore" type="number" min="0" max="99" /></div>
+                    <div class="col-6"><label class="form-label" for="evPenAway">ترجيح @Model.AwayName</label><input class="form-control" id="evPenAway" name="AwayPenaltyScore" type="number" min="0" max="99" /></div>
+                </div>
+                <div class="mb-1"><label class="form-label" for="evNotes">ملاحظة</label><input class="form-control" id="evNotes" name="Notes" maxlength="300" /></div>
+                <div class="text-danger small mt-2" id="eventError" role="alert"></div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="submit" class="btn btn-primary btn-lg w-100" id="eventSubmit">تسجيل</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Correction modal -->
+<div class="modal fade" id="correctModal" tabindex="-1" aria-labelledby="correctModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <form class="modal-content s3-card" id="correctForm" novalidate>
+            <div class="modal-header border-0">
+                <h5 class="modal-title" id="correctModalTitle">تصحيح الحدث</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" name="eventId" />
+                <div class="mb-3" id="cTeamField">
+                    <label class="form-label" for="cTeam">الفريق</label>
+                    <select class="form-select" id="cTeam" name="TeamId">
+                        <option value="@Model.HomeTeamId">@Model.HomeName</option>
+                        <option value="@Model.AwayTeamId">@Model.AwayName</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="cPlayerField"><label class="form-label" for="cPlayer">اللاعب</label><select class="form-select" id="cPlayer" name="PlayerId"></select><input class="form-control d-none" id="cPlayerText" name="PlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled /></div>
+                <div class="mb-3" id="cRelatedField"><label class="form-label" for="cRelated">اللاعب المرتبط</label><select class="form-select" id="cRelated" name="RelatedPlayerId"></select><input class="form-control d-none" id="cRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled /></div>
+                <div class="row g-2 mb-3">
+                    <div class="col-6"><label class="form-label" for="cMinute">الدقيقة</label><input class="form-control" id="cMinute" name="Minute" type="number" min="0" max="200" required /></div>
+                    <div class="col-6"><label class="form-label" for="cExtra">+</label><input class="form-control" id="cExtra" name="ExtraMinute" type="number" min="0" max="30" /></div>
+                </div>
+                <div class="mb-3"><label class="form-label" for="cNotes">ملاحظة</label><input class="form-control" id="cNotes" name="Notes" maxlength="300" /></div>
+                <div class="mb-1"><label class="form-label" for="cReason">سبب التصحيح <span class="text-danger">*</span></label><input class="form-control" id="cReason" name="Reason" maxlength="500" required /></div>
+                <div class="text-danger small mt-2" id="correctError" role="alert"></div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-danger me-auto" id="cCancelEvent">إلغاء الحدث</button>
+                <button type="submit" class="btn btn-primary">حفظ التصحيح</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/operator.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,51 @@
+@model PlayerListViewModel
+@{
+    ViewData["Title"] = "اللاعبون";
+    var all = ViewData["All"] as bool? ?? true;
+    var hasRegion = ViewData["HasRegion"] as bool? ?? false;
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+    <div>
+        <h1 class="page-title">اللاعبون</h1>
+        <p class="page-subtitle">@(all || Model.TeamId != null || !string.IsNullOrWhiteSpace(Model.Search) ? "البحث في كل اللاعبين" : "لاعبو فرق منطقتك")</p>
+    </div>
+    @if (hasRegion)
+    {
+        <div class="status-tabs">
+            <a asp-action="Index" class="@(!all ? "active" : "")">منطقتي</a>
+            <a asp-action="Index" asp-route-all="true" class="@(all ? "active" : "")">كل المناطق</a>
+        </div>
+    }
+</div>
+<form method="get" class="filter-bar mb-3">
+    <input type="hidden" name="all" value="@all.ToString().ToLowerInvariant()" />
+    <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="ابحث باسم اللاعب..." />
+    <select name="teamId" class="form-select" data-autosubmit aria-label="الفريق">
+        <option value="">كل الفرق</option>
+        @foreach (var t in Model.Teams) { <option value="@t.Value" selected="@(Model.TeamId?.ToString() == t.Value)">@t.Text</option> }
+    </select>
+    <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+</form>
+@if (Model.Results.TotalCount == 0)
+{
+    <div class="s3-card empty-state"><i class="fa-solid fa-person-running d-block"></i><p class="mb-0">لا يوجد لاعبون مطابقون.</p></div>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var p in Model.Results.Items)
+        {
+            <div class="col-12 col-sm-6 col-lg-4 col-xl-3">
+                <a class="s3-card team-card text-reset" href="/players/@p.Id">
+                    @Html.EntityLogo(p.PhotoPath, p.FullNameAr, 52)
+                    <div class="min-w-0 flex-grow-1">
+                        <div class="name text-truncate">@p.FullNameAr</div>
+                        <div class="small text-muted text-truncate">@(p.TeamName ?? "لاعب حر")@(p.ShirtNumber != null ? $" · #{p.ShirtNumber}" : "")</div>
+                        <div class="small text-muted">@(p.Position ?? "") @if (p.Goals > 0) { <span class="ms-1"><i class="fa-solid fa-futbol me-1"></i>@p.Goals</span> }</div>
+                    </div>
+                </a>
+            </div>
+        }
+    </div>
+    <div class="s3-card mt-3 pager-standalone"><partial name="_Pager" model="Model.Results" /></div>
+}

@@ -1,0 +1,155 @@
+@model CompetitionDetailsViewModel
+@{
+    ViewData["Title"] = Model.NameAr;
+    ViewData["ShowCompetition"] = false;
+    var hasTables = Model.Tables.Count > 0;
+}
+
+<section class="s3-card mb-3">
+    <div class="team-hero-body">
+        @Html.EntityLogo(Model.LogoPath, Model.NameAr, 84)
+        <div class="flex-grow-1 min-w-0">
+            <h1 class="team-title">@Model.NameAr</h1>
+            <div class="team-meta">
+                <span><i class="fa-solid fa-location-dot me-1"></i>@Model.RegionText</span>
+                <span><i class="fa-solid fa-futbol me-1"></i>@Model.SportName</span>
+                @if (Model.Format is { } f) { <span>@f.GetDisplayName()</span> }
+                @if (Model.OrganizerName != null) { <span>تنظيم: @Model.OrganizerName</span> }
+            </div>
+        </div>
+        <div class="team-hero-actions">
+            @if (Model.Editions.Count > 1)
+            {
+                <select class="form-select" aria-label="الموسم" onchange="location.href='?edition='+this.value">
+                    @foreach (var e in Model.Editions) { <option value="@e.Value" selected="@e.Selected">@e.Text</option> }
+                </select>
+            }
+            else if (Model.SeasonName != null) { <span class="badge text-bg-secondary fs-6">@Model.SeasonName</span> }
+            <partial name="_FollowButton" model="Model.Follow" />
+            @if (Model.CanManage && Model.EditionId != null)
+            {
+                <a class="btn btn-soft btn-sm" asp-area="Admin" asp-controller="Editions" asp-action="Manage" asp-route-id="@Model.EditionId"><i class="fa-solid fa-gear me-1"></i>إدارة</a>
+            }
+        </div>
+    </div>
+    @if (Model.ChampionName != null)
+    {
+        <a class="champion-banner text-reset" href="/teams/@Model.ChampionSlug">
+            <i class="fa-solid fa-trophy"></i> البطل: @Html.EntityLogo(Model.ChampionLogo, Model.ChampionName, 28) <strong>@Model.ChampionName</strong>
+        </a>
+    }
+    <div class="comp-kpis">
+        <div><span class="stat-value">@Model.TeamsCount</span><span class="stat-label">فريق</span></div>
+        <div><span class="stat-value">@Model.MatchesPlayed <small class="text-muted fs-6">من @Model.MatchesTotal</small></span><span class="stat-label">مباراة لُعبت</span></div>
+        <div><span class="stat-value">@Model.TotalGoals</span><span class="stat-label">هدف</span></div>
+        <div><span class="stat-value">@(Model.MatchesPlayed > 0 ? (Model.TotalGoals / (double)Model.MatchesPlayed).ToString("0.0") : "0")</span><span class="stat-label">هدف/مباراة</span></div>
+    </div>
+</section>
+
+@if (Model.EditionId == null)
+{
+    <div class="s3-card empty-state"><i class="fa-solid fa-layer-group d-block"></i><p class="mb-0">لم تبدأ أي نسخة من هذه البطولة بعد.</p></div>
+}
+else
+{
+    <ul class="nav nav-pills match-tabs mb-3" role="tablist">
+        @if (hasTables) { <li class="nav-item"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#c-table" type="button" role="tab">الترتيب</button></li> }
+        <li class="nav-item"><button class="nav-link @(hasTables ? "" : "active")" data-bs-toggle="pill" data-bs-target="#c-fixtures" type="button" role="tab">المباريات القادمة</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#c-results" type="button" role="tab">النتائج</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#c-stats" type="button" role="tab">الإحصائيات</button></li>
+        @if (!string.IsNullOrEmpty(Model.Regulations) || !string.IsNullOrEmpty(Model.Description))
+        {
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#c-about" type="button" role="tab">عن البطولة</button></li>
+        }
+    </ul>
+
+    <div class="tab-content">
+        @if (hasTables)
+        {
+            <div class="tab-pane fade show active" id="c-table" role="tabpanel">
+                @foreach (var t in Model.Tables) { <div class="s3-card mb-3"><partial name="_StandingsTable" model="t" /></div> }
+            </div>
+        }
+        @foreach (var (id, groups, empty, active) in new[] { ("c-fixtures", Model.Fixtures, "لا توجد مباريات قادمة.", !hasTables), ("c-results", Model.Results, "لا توجد نتائج بعد.", false) })
+        {
+            <div class="tab-pane fade @(active ? "show active" : "")" id="@id" role="tabpanel">
+                @if (groups.Count == 0)
+                {
+                    <div class="s3-card empty-state py-4"><p class="mb-0">@empty</p></div>
+                }
+                @foreach (var g in groups)
+                {
+                    <section class="s3-card match-group mb-3">
+                        <header class="match-group-header"><span class="fw-semibold">@(string.IsNullOrEmpty(g.Title) ? "مباريات" : g.Title)</span><span class="small text-muted">@g.Matches.Count</span></header>
+                        @foreach (var m in g.Matches) { <partial name="_MatchCard" model="m" /> }
+                    </section>
+                }
+            </div>
+        }
+        <div class="tab-pane fade" id="c-stats" role="tabpanel">
+            <div class="row g-3">
+                <div class="col-lg-6"><partial name="_PlayerStatList" model="Model.TopScorers" view-data='new ViewDataDictionary(ViewData) { ["Title"] = "الهدافون", ["Icon"] = "fa-solid fa-futbol", ["SecondaryLabel"] = "جزاء" }' /></div>
+                <div class="col-lg-6"><partial name="_PlayerStatList" model="Model.BestPlayers" view-data='new ViewDataDictionary(ViewData) { ["Title"] = "أفضل لاعب (عدد مرات الاختيار)", ["Icon"] = "fa-solid fa-star" }' /></div>
+                <div class="col-lg-4"><partial name="_PlayerStatList" model="Model.TopAssists" view-data='new ViewDataDictionary(ViewData) { ["Title"] = "صناعة الأهداف", ["Icon"] = "fa-solid fa-hands-helping" }' /></div>
+                <div class="col-lg-4"><partial name="_PlayerStatList" model="Model.MostAppearances" view-data='new ViewDataDictionary(ViewData) { ["Title"] = "الأكثر مشاركة", ["Icon"] = "fa-solid fa-person-running", ["SecondaryLabel"] = "أساسي" }' /></div>
+                <div class="col-lg-4"><partial name="_PlayerStatList" model="Model.MostCards" view-data='new ViewDataDictionary(ViewData) { ["Title"] = "البطاقات (صفراء)", ["Icon"] = "fa-solid fa-square text-warning", ["SecondaryLabel"] = "حمراء" }' /></div>
+                @if (Model.TeamStats.Count > 0)
+                {
+                    var bestAttack = Model.TeamStats.OrderByDescending(t => t.GoalsFor).First();
+                    var bestDefense = Model.TeamStats.OrderBy(t => t.GoalsAgainst).ThenByDescending(t => t.CleanSheets).First();
+                    <div class="col-md-6"><div class="s3-card stat-card"><span class="stat-icon"><i class="fa-solid fa-bolt"></i></span><div><div class="stat-label">أقوى هجوم</div><div class="fw-semibold">@bestAttack.TeamName</div><div class="small text-muted">@bestAttack.GoalsFor هدف في @bestAttack.Played مباراة</div></div></div></div>
+                    <div class="col-md-6"><div class="s3-card stat-card"><span class="stat-icon tint-blue"><i class="fa-solid fa-shield"></i></span><div><div class="stat-label">أقوى دفاع</div><div class="fw-semibold">@bestDefense.TeamName</div><div class="small text-muted">استقبل @bestDefense.GoalsAgainst هدف · @bestDefense.CleanSheets شباك نظيفة</div></div></div></div>
+                    <div class="col-12">
+                        <div class="s3-card">
+                            <div class="s3-card-header"><h2><i class="fa-solid fa-chart-column me-1"></i>أهداف الفرق: له / عليه</h2></div>
+                            <div class="s3-card-body"><div style="height:300px"><canvas id="goalsChart" role="img" aria-label="أهداف الفرق"></canvas></div></div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="tab-pane fade" id="c-about" role="tabpanel">
+            <div class="s3-card"><div class="s3-card-body" style="white-space:pre-line">
+                @if (!string.IsNullOrEmpty(Model.Description)) { <p>@Model.Description</p> }
+                @if (!string.IsNullOrEmpty(Model.Regulations)) { <h2 class="h6 mt-3">لائحة البطولة</h2><div>@Model.Regulations</div> }
+            </div></div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    @if (Model.TeamStats.Count > 0)
+    {
+        <script src="~/lib/chartjs/chart.umd.min.js"></script>
+        <script>
+            (() => {
+                const data = @Json.Serialize(Model.TeamStats.Select(t => new { t.TeamName, t.GoalsFor, t.GoalsAgainst }));
+                let chart;
+                const draw = () => {
+                    chart?.destroy();
+                    const css = getComputedStyle(document.documentElement);
+                    Chart.defaults.color = css.getPropertyValue('--s3-muted').trim();
+                    Chart.defaults.font.family = css.getPropertyValue('--bs-font-sans-serif');
+                    chart = new Chart(document.getElementById('goalsChart'), {
+                        type: 'bar',
+                        data: {
+                            labels: data.map(d => d.teamName),
+                            datasets: [
+                                { label: 'له', data: data.map(d => d.goalsFor), backgroundColor: css.getPropertyValue('--s3-brand').trim(), borderRadius: 5, maxBarThickness: 28 },
+                                { label: 'عليه', data: data.map(d => d.goalsAgainst), backgroundColor: '#ef4444', borderRadius: 5, maxBarThickness: 28 }
+                            ]
+                        },
+                        options: {
+                            maintainAspectRatio: false,
+                            plugins: { legend: { rtl: true, position: 'bottom' } },
+                            scales: { x: { reverse: true, grid: { display: false } }, y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: css.getPropertyValue('--s3-border').trim() } } }
+                        }
+                    });
+                };
+                // Draw when the stats tab is shown (canvas needs a visible size).
+                document.querySelector('[data-bs-target="#c-stats"]')?.addEventListener('shown.bs.tab', () => { if (!chart) draw(); });
+                document.addEventListener('s3:theme', () => { if (chart) draw(); });
+            })();
+        </script>
+    }
+}

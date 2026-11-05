@@ -1,0 +1,55 @@
+@model NewsDetailsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+<div class="row g-4">
+    <article class="col-lg-8">
+        <div class="s3-card overflow-hidden">
+            @if (Model.CoverImagePath != null)
+            {
+                <img src="@Model.CoverImagePath" alt="" class="news-hero-img" />
+            }
+            <div class="p-3 p-md-4">
+                <div class="small text-muted mb-2">
+                    <span class="badge text-bg-secondary">@Model.Category.GetDisplayName()</span>
+                    @Model.PublishedAt.ToMuscatString("yyyy/MM/dd HH:mm")
+                    @if (Model.AuthorName != null) { <span>· @Model.AuthorName</span> }
+                    <span>· <i class="fa-regular fa-eye"></i> @Model.ViewCount</span>
+                </div>
+                <h1 class="h3 fw-bold mb-3">@Model.Title</h1>
+                @if (Model.Summary != null) { <p class="lead fs-6 text-muted">@Model.Summary</p> }
+                <div class="news-body">@Model.Body</div>
+
+                @if (Model.VideoEmbedUrl != null)
+                {
+                    <div class="ratio ratio-16x9 mt-4 rounded overflow-hidden">
+                        <iframe src="@Model.VideoEmbedUrl" title="فيديو" loading="lazy" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"
+                                allow="accelerometer; encrypted-media; gyroscope; picture-in-picture" sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
+                    </div>
+                }
+                @if (Model.Media.Count > 0)
+                {
+                    <div class="news-gallery mt-4">
+                        @foreach (var m in Model.Media)
+                        {
+                            <a href="@m.Path" target="_blank" rel="noopener"><img src="@m.Path" alt="@m.Caption" loading="lazy" /></a>
+                        }
+                    </div>
+                }
+                <div class="d-flex flex-wrap gap-2 mt-4">
+                    @if (Model.TeamSlug != null) { <a class="btn btn-soft btn-sm" href="/teams/@Model.TeamSlug"><i class="fa-solid fa-shield-halved me-1"></i>@Model.TeamName</a> }
+                    @if (Model.PlayerId != null) { <a class="btn btn-soft btn-sm" href="/players/@Model.PlayerId"><i class="fa-solid fa-person-running me-1"></i>@Model.PlayerName</a> }
+                    @if (Model.CompetitionSlug != null) { <a class="btn btn-soft btn-sm" href="/competitions/@Model.CompetitionSlug"><i class="fa-solid fa-trophy me-1"></i>@Model.CompetitionName</a> }
+                    @if (Model.MatchId != null) { <a class="btn btn-soft btn-sm" href="/matches/@Model.MatchId"><i class="fa-solid fa-futbol me-1"></i>@Model.MatchTitle</a> }
+                </div>
+            </div>
+        </div>
+    </article>
+    <aside class="col-lg-4">
+        <h2 class="section-title"><i class="fa-regular fa-newspaper"></i>أخبار ذات صلة</h2>
+        @if (Model.Related.Count == 0) { <p class="text-muted small">لا توجد أخبار أخرى.</p> }
+        <div class="d-grid gap-3">
+            @foreach (var n in Model.Related) { <partial name="_NewsCard" model="n" /> }
+        </div>
+    </aside>
+</div>

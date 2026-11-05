@@ -1,0 +1,23 @@
+@model TeamCardViewModel
+@{
+    var follow = new FollowButtonViewModel
+    {
+        TargetType = FollowTargetType.Team,
+        TargetId = Model.Id,
+        IsAuthenticated = User.Identity?.IsAuthenticated == true,
+        IsFollowing = Model.IsFollowed,
+        Compact = true
+    };
+}
+<div class="s3-card team-card">
+    @Html.EntityLogo(Model.LogoPath, Model.NameAr, 52)
+    <div class="min-w-0 flex-grow-1">
+        <a class="name d-block text-truncate text-reset stretched-link" asp-controller="Teams" asp-action="Details" asp-route-slug="@Model.Slug">@Model.NameAr</a>
+        <div class="small text-muted text-truncate">@Model.AreaText</div>
+        <div class="small text-muted">
+            @if (Model.FollowersCount > 0) { <span><i class="fa-solid fa-star me-1 text-warning"></i>@Model.FollowersCount متابع</span> }
+            else if (Model.FoundedYear.HasValue) { <span>تأسس عام @Model.FoundedYear</span> }
+        </div>
+    </div>
+    <partial name="_FollowButton" model="follow" />
+</div>

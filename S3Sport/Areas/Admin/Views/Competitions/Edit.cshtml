@@ -1,0 +1,47 @@
+@model CompetitionFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "إضافة بطولة" : $"تعديل: {Model.NameAr}";
+}
+<div class="s3-card mx-auto" style="max-width:900px">
+    <div class="s3-card-header"><h2>@ViewData["Title"]</h2></div>
+    <div class="s3-card-body">
+        <form asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="RowVersion" />
+            <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+            <div class="row g-3">
+                <div class="col-md-6"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" /><span asp-validation-for="NameAr" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="NameEn" class="form-label"></label><input asp-for="NameEn" class="form-control ltr" /><span asp-validation-for="NameEn" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="SportId" class="form-label"></label><select asp-for="SportId" asp-items="Model.Sports" class="form-select"></select></div>
+                <div class="col-md-6"><label asp-for="OrganizerName" class="form-label"></label><input asp-for="OrganizerName" class="form-control" /></div>
+                <div class="col-md-4">
+                    <label asp-for="GovernorateId" class="form-label"></label>
+                    <select asp-for="GovernorateId" asp-items="Model.Governorates" class="form-select"><option value="">سلطنة عُمان (وطنية)</option></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="WilayatId" class="form-label"></label>
+                    <select asp-for="WilayatId" class="form-select" data-cascade-parent="#GovernorateId" data-cascade-url="/Region/Wilayats?governorateId=" data-placeholder="كل الولايات" data-selected="@Model.WilayatId"></select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="AreaId" class="form-label"></label>
+                    <select asp-for="AreaId" class="form-select" data-cascade-parent="#WilayatId" data-cascade-url="/Region/Areas?wilayatId=" data-placeholder="كل المناطق" data-selected="@Model.AreaId"></select>
+                </div>
+                <div class="col-12"><label asp-for="Description" class="form-label"></label><textarea asp-for="Description" class="form-control" rows="3"></textarea></div>
+                <div class="col-12">
+                    <label asp-for="Logo" class="form-label"></label>
+                    <div class="d-flex align-items-center gap-3">
+                        <img id="logoPreview" src="@Model.LogoPath" alt="" class="entity-logo @(Model.LogoPath == null ? "d-none" : "")" style="width:64px;height:64px" />
+                        <input asp-for="Logo" type="file" class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" data-preview="#logoPreview" />
+                    </div>
+                    <span asp-validation-for="Logo" class="field-validation-error"></span>
+                </div>
+                <div class="col-12"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" role="switch" /><label asp-for="IsActive" class="form-check-label"></label></div></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">حفظ</button>
+                <a class="btn btn-soft" asp-action="@(Model.Id == 0 ? "Index" : "Details")" asp-route-id="@(Model.Id == 0 ? null : Model.Id)">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

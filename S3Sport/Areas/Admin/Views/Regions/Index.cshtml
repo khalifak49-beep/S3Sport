@@ -1,0 +1,88 @@
+@model RegionAdminListViewModel
+@{
+    ViewData["Title"] = "إدارة المناطق";
+    var childLevel = Model.Level + 1;
+    var hasSortOrder = Model.Level is RegionLevel.Governorate or RegionLevel.Wilayat;
+}
+
+<nav aria-label="مسار المناطق" class="mb-3">
+    <ol class="breadcrumb mb-0">
+        <li class="breadcrumb-item"><a asp-action="Index">المحافظات</a></li>
+        @foreach (var (level, id, name) in Model.Breadcrumbs)
+        {
+            <li class="breadcrumb-item"><a asp-action="Index" asp-route-level="@(level + 1)" asp-route-parentId="@id">@name</a></li>
+        }
+        <li class="breadcrumb-item active" aria-current="page">@Model.Level.GetDisplayName()</li>
+    </ol>
+</nav>
+
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="hidden" name="level" value="@Model.Level" />
+            <input type="hidden" name="parentId" value="@Model.ParentId" />
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث بالاسم..." />
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a class="btn btn-primary" asp-action="Create" asp-route-level="@Model.Level" asp-route-parentId="@Model.ParentId">
+            <i class="fa-solid fa-plus me-1"></i>إضافة
+        </a>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-map d-block"></i><p class="mb-0">لا توجد بيانات في هذا المستوى بعد.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover">
+                <thead>
+                    <tr>
+                        <th>الاسم</th><th>الاسم بالإنجليزية</th>
+                        @if (hasSortOrder) { <th>الترتيب</th> }
+                        @if (Model.HasChildren) { <th>@childLevel.GetDisplayName()</th> }
+                        <th>الحالة</th><th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Items)
+                    {
+                        <tr>
+                            <td class="fw-semibold">
+                                @if (Model.HasChildren)
+                                {
+                                    <a asp-action="Index" asp-route-level="@childLevel" asp-route-parentId="@r.Id">@r.NameAr</a>
+                                }
+                                else
+                                {
+                                    @r.NameAr
+                                }
+                            </td>
+                            <td class="text-muted">@r.NameEn</td>
+                            @if (hasSortOrder) { <td>@r.SortOrder</td> }
+                            @if (Model.HasChildren)
+                            {
+                                <td><a class="btn btn-soft btn-sm" asp-action="Index" asp-route-level="@childLevel" asp-route-parentId="@r.Id">@r.ChildCount <i class="fa-solid fa-chevron-left small ms-1"></i></a></td>
+                            }
+                            <td>
+                                @if (r.IsActive) { <span class="badge text-bg-success">مفعّلة</span> }
+                                else { <span class="badge text-bg-secondary">معطّلة</span> }
+                            </td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-level="@Model.Level" asp-route-id="@r.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                                    <form asp-action="Delete" asp-route-level="@Model.Level" asp-route-id="@r.Id" method="post"
+                                          data-confirm="حذف «@r.NameAr»؟" data-confirm-text="لا يمكن حذف منطقة مرتبطة ببيانات أخرى." data-confirm-danger data-confirm-button="نعم، حذف">
+                                        <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="p-3 border-top small text-muted">العدد: @Model.Items.Count</div>
+    }
+</div>

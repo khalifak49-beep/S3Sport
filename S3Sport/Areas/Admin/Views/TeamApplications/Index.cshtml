@@ -1,0 +1,60 @@
+@model TeamApplicationListViewModel
+@{
+    ViewData["Title"] = "طلبات تسجيل الفرق";
+    var total = Model.StatusCounts.Values.Sum();
+}
+
+<div class="status-tabs mb-3">
+    @foreach (var s in new[] { TeamStatus.Pending, TeamStatus.Approved, TeamStatus.Rejected })
+    {
+        <a asp-action="Index" asp-route-status="@s" asp-route-search="@Model.Search" class="@(Model.Status == s ? "active" : "")">
+            @s.GetDisplayName() <span class="count">(@Model.StatusCounts.GetValueOrDefault(s))</span>
+        </a>
+    }
+    <a asp-action="Index" asp-route-status="" asp-route-search="@Model.Search" class="@(Model.Status == null ? "active" : "")">الكل <span class="count">(@total)</span></a>
+</div>
+
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar w-100">
+            <input type="hidden" name="status" value="@Model.Status" />
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث باسم الفريق أو مقدم الطلب أو المنطقة..." />
+            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-magnifying-glass"></i> بحث</button>
+        </form>
+    </div>
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-regular fa-folder-open d-block"></i><p class="mb-0">لا توجد طلبات مطابقة.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>الفريق</th><th>مقدم الطلب</th><th>المنطقة</th><th>تاريخ التقديم</th><th>الحالة</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var a in Model.Results.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @Html.EntityLogo(a.LogoPath, a.NameAr, 36)
+                                    <div><div class="fw-semibold">@a.NameAr</div><div class="small text-muted">@a.NameEn</div></div>
+                                </div>
+                            </td>
+                            <td><div>@a.ApplicantName</div><div class="small text-muted ltr">@a.ApplicantEmail</div></td>
+                            <td>@a.RegionText</td>
+                            <td class="text-nowrap">@a.SubmittedAt.ToMuscatString()</td>
+                            <td><span class="badge @a.Status.BadgeClass()">@a.Status.GetDisplayName()</span></td>
+                            <td class="text-end">
+                                <a class="btn btn-sm @(a.Status == TeamStatus.Pending ? "btn-primary" : "btn-soft")" asp-action="Details" asp-route-id="@a.Id">
+                                    @(a.Status == TeamStatus.Pending ? "مراجعة" : "عرض")
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

@@ -1,0 +1,27 @@
+@model List<PlayerStatRow>
+@* Ranked player list (top scorers, assists, ...). ViewData: Title, Icon, Unit, SecondaryLabel. *@
+<div class="s3-card h-100">
+    <div class="s3-card-header"><h2><i class="@ViewData["Icon"] me-1"></i>@ViewData["Title"]</h2></div>
+    @if (Model.Count == 0)
+    {
+        <div class="s3-card-body text-muted small">لا توجد بيانات بعد.</div>
+    }
+    else
+    {
+        <ol class="list-group list-group-flush stat-list">
+            @for (var i = 0; i < Model.Count; i++)
+            {
+                var p = Model[i];
+                <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                    <span class="rank">@(i + 1)</span>
+                    @Html.EntityLogo(p.Photo, p.Name, 32)
+                    <div class="flex-grow-1 min-w-0">
+                        <a class="fw-semibold text-reset d-block text-truncate" href="/players/@p.PlayerId">@p.Name</a>
+                        <div class="small text-muted text-truncate">@p.TeamName@(ViewData["SecondaryLabel"] is string sl && p.Secondary is > 0 ? $" · {sl} {p.Secondary}" : "")</div>
+                    </div>
+                    <span class="stat-value-sm">@p.Value</span>
+                </li>
+            }
+        </ol>
+    }
+</div>

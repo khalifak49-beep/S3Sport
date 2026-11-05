@@ -1,0 +1,78 @@
+@model PlayerDetailsViewModel
+@* Career tables (statistics per season, teams history, transfers) shared by the admin and public player pages. *@
+<div class="s3-card mb-4">
+    <div class="s3-card-header"><h2><i class="fa-solid fa-chart-simple me-1"></i>الإحصائيات حسب الموسم</h2></div>
+    @if (Model.Stats.Count == 0)
+    {
+        <div class="s3-card-body text-muted">لا توجد مشاركات مسجلة بعد.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-nowrap mb-0">
+                <thead><tr><th>البطولة</th><th>الموسم</th><th>الفريق</th><th class="text-center">مشاركة</th><th class="text-center">أساسي</th><th class="text-center">أهداف</th><th class="text-center">صناعة</th><th class="text-center"><span class="card-icon yellow"></span></th><th class="text-center"><span class="card-icon red"></span></th><th class="text-center" title="أفضل لاعب">⭐</th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.Stats)
+                    {
+                        <tr>
+                            <td>@if (s.CompetitionSlug != null) { <a asp-area="" asp-controller="Competitions" asp-action="Details" asp-route-slug="@s.CompetitionSlug">@s.CompetitionName</a> } else { @s.CompetitionName }</td>
+                            <td>@s.SeasonName</td><td>@s.TeamName</td>
+                            <td class="text-center">@s.Appearances</td><td class="text-center">@s.Starts</td>
+                            <td class="text-center fw-bold">@s.Goals</td><td class="text-center">@s.Assists</td>
+                            <td class="text-center">@s.YellowCards</td><td class="text-center">@s.RedCards</td><td class="text-center">@s.BestPlayerAwards</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="s3-card h-100">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-shield-halved me-1"></i>الفرق</h2></div>
+            @if (Model.History.Count == 0)
+            {
+                <div class="s3-card-body text-muted">لم ينضم لأي فريق بعد.</div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var h in Model.History)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                            @Html.EntityLogo(h.TeamLogo, h.TeamName, 30)
+                            <div class="flex-grow-1">
+                                <div class="fw-semibold">@h.TeamName @if (h.IsActive) { <span class="badge text-bg-success ms-1">حالي</span> }</div>
+                                <div class="small text-muted">@h.JoinedOn.ToString("yyyy/MM/dd") — @(h.LeftOn?.ToString("yyyy/MM/dd") ?? "الآن")</div>
+                            </div>
+                            @if (h.ShirtNumber != null) { <span class="shirt-number">@h.ShirtNumber</span> }
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="s3-card h-100">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-right-left me-1"></i>سجل الانتقالات</h2></div>
+            @if (Model.Transfers.Count == 0)
+            {
+                <div class="s3-card-body text-muted">لا توجد انتقالات مسجلة.</div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var t in Model.Transfers)
+                    {
+                        <li class="list-group-item bg-transparent">
+                            <div class="fw-semibold">@(t.FromTeam ?? "لاعب حر") <i class="fa-solid fa-arrow-left mx-1 small text-muted"></i> @(t.ToTeam ?? "بدون فريق")</div>
+                            <div class="small text-muted">@t.TransferDate.ToString("yyyy/MM/dd") @(t.Notes != null ? "— " + t.Notes : "")</div>
+                        </li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>

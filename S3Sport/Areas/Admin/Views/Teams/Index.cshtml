@@ -1,0 +1,85 @@
+@model TeamListViewModel
+@{
+    ViewData["Title"] = "إدارة الفرق";
+}
+
+<div class="s3-card">
+    <div class="s3-card-header">
+        <form method="get" class="filter-bar flex-grow-1">
+            <input type="search" name="search" value="@Model.Search" class="form-control search" placeholder="بحث باسم الفريق أو المنطقة..." />
+            <select name="status" class="form-select" data-autosubmit>
+                <option value="">كل الحالات</option>
+                @foreach (var s in new[] { TeamStatus.Approved, TeamStatus.Suspended })
+                {
+                    <option value="@s" selected="@(Model.Status == s)">@s.GetDisplayName()</option>
+                }
+            </select>
+            <select name="governorateId" class="form-select" data-autosubmit>
+                <option value="">كل المحافظات</option>
+                @foreach (var g in Model.Governorates)
+                {
+                    <option value="@g.Value" selected="@(Model.GovernorateId?.ToString() == g.Value)">@g.Text</option>
+                }
+            </select>
+            <select name="sort" class="form-select" data-autosubmit aria-label="الترتيب">
+                <option value="name" selected="@(Model.Sort == "name")">الترتيب: الاسم</option>
+                <option value="newest" selected="@(Model.Sort == "newest")">الأحدث</option>
+                <option value="oldest" selected="@(Model.Sort == "oldest")">الأقدم</option>
+                <option value="players" selected="@(Model.Sort == "players")">عدد اللاعبين</option>
+            </select>
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+        </form>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>إضافة فريق</a>
+    </div>
+
+    @if (Model.Results.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-shield-halved d-block"></i><p class="mb-0">لا توجد فرق مطابقة.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>الفريق</th><th>المنطقة الرئيسية</th><th>المسؤول</th><th>اللاعبون</th><th>الحالة</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.Results.Items)
+                    {
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center gap-2">
+                                    @Html.EntityLogo(t.LogoPath, t.NameAr, 36)
+                                    <div><div class="fw-semibold">@t.NameAr</div><div class="small text-muted">@t.NameEn</div></div>
+                                </div>
+                            </td>
+                            <td>@(t.PrimaryAreaText ?? "—")</td>
+                            <td>@(t.ManagerName ?? "—")</td>
+                            <td>@t.PlayersCount</td>
+                            <td><span class="badge @t.Status.BadgeClass()">@t.Status.GetDisplayName()</span></td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@t.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                                    @if (t.Status == TeamStatus.Suspended)
+                                    {
+                                        <form asp-action="ChangeStatus" asp-route-id="@t.Id" asp-route-status="@TeamStatus.Approved" method="post" data-confirm="إعادة تفعيل الفريق؟" data-confirm-text="@t.NameAr">
+                                            <button class="btn btn-soft btn-sm text-success" type="submit" title="تفعيل"><i class="fa-solid fa-play"></i></button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form asp-action="ChangeStatus" asp-route-id="@t.Id" asp-route-status="@TeamStatus.Suspended" method="post" data-confirm="إيقاف الفريق؟" data-confirm-text="سيختفي الفريق من الصفحات العامة حتى إعادة تفعيله." data-confirm-danger>
+                                            <button class="btn btn-soft btn-sm text-warning" type="submit" title="إيقاف"><i class="fa-solid fa-pause"></i></button>
+                                        </form>
+                                    }
+                                    <form asp-action="Delete" asp-route-id="@t.Id" method="post" data-confirm="حذف الفريق؟" data-confirm-text="@t.NameAr" data-confirm-danger data-confirm-button="نعم، حذف">
+                                        <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <partial name="_Pager" model="Model.Results" />
+    }
+</div>

@@ -1,0 +1,14 @@
+﻿@model ErrorViewModel
+@{
+    ViewData["Title"] = "حدث خطأ";
+}
+<div class="s3-card empty-state my-5 mx-auto" style="max-width:520px">
+    <i class="fa-solid fa-triangle-exclamation d-block"></i>
+    <h1 class="h4 text-body">عذراً، حدث خطأ أثناء معالجة طلبك</h1>
+    <p>تم تسجيل الخطأ وسنعمل على معالجته. حاول مرة أخرى لاحقاً.</p>
+    @if (Model.ShowRequestId)
+    {
+        <p class="small">رقم المرجع: <code class="ltr">@Model.RequestId</code></p>
+    }
+    <a class="btn btn-primary" asp-area="" asp-controller="Home" asp-action="Index">العودة للرئيسية</a>
+</div>

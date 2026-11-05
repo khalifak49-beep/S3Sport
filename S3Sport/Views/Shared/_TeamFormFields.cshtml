@@ -1,0 +1,119 @@
+@model TeamFormBase
+@* Shared fields of the team application form and the admin team form: names, region chain, logo, details. *@
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <label asp-for="NameAr" class="form-label"></label>
+        <input asp-for="NameAr" class="form-control" maxlength="150" />
+        <span asp-validation-for="NameAr" class="field-validation-error"></span>
+    </div>
+    <div class="col-md-6">
+        <label asp-for="NameEn" class="form-label"></label>
+        <input asp-for="NameEn" class="form-control ltr" maxlength="150" />
+        <span asp-validation-for="NameEn" class="field-validation-error"></span>
+    </div>
+
+    <div class="col-md-6 col-lg-3">
+        <label asp-for="GovernorateId" class="form-label"></label>
+        <select asp-for="GovernorateId" asp-items="Model.Governorates" class="form-select">
+            <option value="0">اختر المحافظة</option>
+        </select>
+        <span asp-validation-for="GovernorateId" class="field-validation-error"></span>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <label asp-for="WilayatId" class="form-label"></label>
+        <select asp-for="WilayatId" class="form-select" data-cascade-parent="#GovernorateId" data-cascade-url="/Region/Wilayats?governorateId="
+                data-placeholder="اختر الولاية" data-selected="@(Model.WilayatId > 0 ? Model.WilayatId : null)"></select>
+        <span asp-validation-for="WilayatId" class="field-validation-error"></span>
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <label asp-for="AreaId" class="form-label"></label>
+        <select asp-for="AreaId" class="form-select" data-cascade-parent="#WilayatId" data-cascade-url="/Region/Areas?wilayatId="
+                data-placeholder="اختر المنطقة" data-empty-text="لا توجد مناطق مسجلة" data-selected="@(Model.AreaId > 0 ? Model.AreaId : null)"></select>
+        <span asp-validation-for="AreaId" class="field-validation-error"></span>
+        @if (Model.AllowsProposedArea)
+        {
+            <button type="button" class="btn btn-link btn-sm p-0 mt-1" id="proposeAreaToggle">لم تجد منطقتك؟ اكتب اسمها</button>
+        }
+    </div>
+    <div class="col-md-6 col-lg-3">
+        <label asp-for="VillageId" class="form-label"></label>
+        <select asp-for="VillageId" class="form-select" data-cascade-parent="#AreaId" data-cascade-url="/Region/Villages?areaId="
+                data-placeholder="بدون تحديد" data-selected="@Model.VillageId"></select>
+    </div>
+    @if (Model.AllowsProposedArea)
+    {
+        <div class="col-12 @(string.IsNullOrEmpty(Model.ProposedArea) ? "d-none" : "")" id="proposedAreaBox">
+            <div class="proposed-area">
+                <label for="ProposedAreaName" class="form-label"><i class="fa-solid fa-map-pin me-1"></i>اسم منطقتك</label>
+                <input id="ProposedAreaName" name="ProposedAreaName" value="@Model.ProposedArea" class="form-control" maxlength="100" placeholder="مثال: الحجيرة" />
+                <div class="form-text" id="proposedAreaHint">منطقتك غير موجودة في القائمة؟ اكتب اسمها وستُضاف إلى المنصة عند الموافقة على طلبك.</div>
+                @Html.ValidationMessage("ProposedAreaName", new { @class = "field-validation-error" })
+            </div>
+        </div>
+        <script>
+            // "Propose an area": shown on demand, or automatically when the wilayat has no registered areas.
+            (() => {
+                const area = document.getElementById('AreaId');
+                const wilayat = document.getElementById('WilayatId');
+                const box = document.getElementById('proposedAreaBox');
+                const input = document.getElementById('ProposedAreaName');
+                const hint = document.getElementById('proposedAreaHint');
+                const toggle = document.getElementById('proposeAreaToggle');
+                const show = auto => {
+                    box.classList.remove('d-none');
+                    hint.textContent = auto
+                        ? 'لا توجد مناطق مسجلة في هذه الولاية بعد. اكتب اسم منطقتك وستُضاف إلى المنصة عند الموافقة على طلبك.'
+                        : 'منطقتك غير موجودة في القائمة؟ اكتب اسمها وستُضاف إلى المنصة عند الموافقة على طلبك.';
+                };
+                const hide = () => { box.classList.add('d-none'); input.value = ''; };
+
+                toggle.addEventListener('click', () => { area.value = ''; show(false); input.focus(); });
+                input.addEventListener('input', () => { if (input.value.trim()) { area.value = ''; } });
+                area.addEventListener('change', () => {
+                    const noAreas = area.disabled && wilayat.value && wilayat.value !== '0';
+                    toggle.classList.toggle('d-none', !!noAreas || !wilayat.value || wilayat.value === '0');
+                    if (area.value) { hide(); }
+                    else if (noAreas) { show(true); }
+                    else if (!input.value.trim()) { box.classList.add('d-none'); }
+                });
+            })();
+        </script>
+    }
+    <div class="col-12">
+        <label asp-for="AdditionalAreaIds" class="form-label"></label>
+        <select asp-for="AdditionalAreaIds" class="form-select" multiple size="5" data-cascade-parent="#GovernorateId"
+                data-cascade-url="/Region/GovernorateAreas?governorateId=" data-selected="@string.Join(",", Model.AdditionalAreaIds)"></select>
+        <div class="form-text">اختياري: إذا كان الفريق يمثل أكثر من منطقة في نفس المحافظة. اضغط Ctrl لاختيار أكثر من منطقة.</div>
+        <span asp-validation-for="AdditionalAreaIds" class="field-validation-error"></span>
+    </div>
+
+    <div class="col-md-4">
+        <label asp-for="FoundedYear" class="form-label"></label>
+        <input asp-for="FoundedYear" class="form-control ltr" type="number" min="1900" max="@DateTime.UtcNow.Year" />
+        <span asp-validation-for="FoundedYear" class="field-validation-error"></span>
+    </div>
+    <div class="col-md-8">
+        <label asp-for="ContactEmail" class="form-label"></label>
+        <input asp-for="ContactEmail" class="form-control ltr" />
+        <span asp-validation-for="ContactEmail" class="field-validation-error"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="4" maxlength="2000"></textarea>
+        <span asp-validation-for="Description" class="field-validation-error"></span>
+    </div>
+
+    <div class="col-12">
+        <label asp-for="Logo" class="form-label"></label>
+        <div class="d-flex align-items-center gap-3">
+            <img id="logoPreview" src="@Model.ExistingLogoPath" alt="" class="entity-logo @(Model.ExistingLogoPath == null ? "d-none" : "")" style="width:72px;height:72px" />
+            <div class="flex-grow-1">
+                <input asp-for="Logo" type="file" class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" data-preview="#logoPreview" />
+                <div class="form-text">PNG أو JPG أو WEBP، بحد أقصى 2 ميجابايت. يفضل أن تكون مربعة.</div>
+                <span asp-validation-for="Logo" class="field-validation-error"></span>
+            </div>
+        </div>
+    </div>
+</div>

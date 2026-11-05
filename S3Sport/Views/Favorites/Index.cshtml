@@ -1,0 +1,72 @@
+@model FavoritesViewModel
+@{
+    ViewData["Title"] = "المفضلة";
+}
+
+<div class="mb-4">
+    <h1 class="page-title">المفضلة</h1>
+    <p class="page-subtitle">كل ما تتابعه، من أي منطقة. تحكم في إشعارات كل فريق من زر الجرس.</p>
+</div>
+
+@if (Model.Matches.Count > 0)
+{
+    <h2 class="section-title"><i class="fa-solid fa-futbol"></i>مباريات أتابعها</h2>
+    <section class="s3-card match-group mb-4">
+        @{ ViewData["ShowCompetition"] = true; }
+        @foreach (var m in Model.Matches) { <partial name="_MatchCard" model="m" /> }
+    </section>
+}
+
+<h2 class="section-title"><i class="fa-solid fa-shield-halved"></i>الفرق التي أتابعها <span class="text-muted small fw-normal">(@Model.Teams.Count)</span></h2>
+
+@if (Model.Teams.Count == 0)
+{
+    <div class="s3-card empty-state">
+        <i class="fa-regular fa-star d-block"></i>
+        <p class="mb-3">لا تتابع أي فريق بعد. تابع أي فريق من أي منطقة لتصلك إشعارات مبارياته وأخباره.</p>
+        <a class="btn btn-primary" asp-controller="Teams" asp-action="Index" asp-route-all="true">تصفح الفرق</a>
+    </div>
+}
+else
+{
+    <div class="s3-card">
+        <ul class="list-group list-group-flush">
+            @foreach (var t in Model.Teams)
+            {
+                <li class="list-group-item bg-transparent favorite-row">
+                    <a class="d-flex align-items-center gap-3 text-reset min-w-0 flex-grow-1" asp-controller="Teams" asp-action="Details" asp-route-slug="@t.Slug">
+                        @Html.EntityLogo(t.LogoPath, t.NameAr, 48)
+                        <div class="min-w-0">
+                            <div class="fw-semibold text-truncate">@t.NameAr</div>
+                            <div class="small text-muted text-truncate">@t.AreaText</div>
+                        </div>
+                    </a>
+                    <partial name="_FollowButton" model="t.Follow" />
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@foreach (var (title, icon, items) in new[] { ("اللاعبون الذين أتابعهم", "fa-person-running", Model.Players), ("البطولات التي أتابعها", "fa-trophy", Model.Competitions) })
+{
+    if (items.Count == 0) { continue; }
+    <h2 class="section-title mt-4"><i class="fa-solid @icon"></i>@title <span class="text-muted small fw-normal">(@items.Count)</span></h2>
+    <div class="s3-card">
+        <ul class="list-group list-group-flush">
+            @foreach (var i in items)
+            {
+                <li class="list-group-item bg-transparent favorite-row">
+                    <a class="d-flex align-items-center gap-3 text-reset min-w-0 flex-grow-1" href="@i.Url">
+                        @Html.EntityLogo(i.Image, i.Name, 44)
+                        <div class="min-w-0">
+                            <div class="fw-semibold text-truncate">@i.Name</div>
+                            @if (i.Subtitle != null) { <div class="small text-muted text-truncate">@i.Subtitle</div> }
+                        </div>
+                    </a>
+                    <partial name="_FollowButton" model="i.Follow" />
+                </li>
+            }
+        </ul>
+    </div>
+}

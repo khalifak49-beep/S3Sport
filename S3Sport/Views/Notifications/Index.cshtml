@@ -1,0 +1,51 @@
+@model PagedResult<NotificationItem>
+@{
+    ViewData["Title"] = "الإشعارات";
+}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
+    <h1 class="page-title">الإشعارات</h1>
+    @if (Model.Items.Any(n => !n.IsRead))
+    {
+        <form asp-action="MarkAllRead" method="post">
+            <button class="btn btn-soft" type="submit"><i class="fa-solid fa-check-double me-1"></i>تعليم الكل كمقروء</button>
+        </form>
+    }
+</div>
+
+<div class="s3-card mb-3" data-push-box>
+    <div class="s3-card-body d-flex flex-wrap align-items-center gap-3">
+        <span class="stat-icon" style="width:42px;height:42px;font-size:1.1rem"><i class="fa-solid fa-mobile-screen-button"></i></span>
+        <div class="flex-grow-1 small" data-push-state>جارٍ التحقق من إشعارات هذا الجهاز…</div>
+        <button type="button" class="btn btn-primary d-none" data-push-toggle>تفعيل على هذا الجهاز</button>
+    </div>
+</div>
+
+<div class="s3-card">
+    @if (Model.TotalCount == 0)
+    {
+        <div class="empty-state"><i class="fa-regular fa-bell-slash d-block"></i><p class="mb-0">لا توجد إشعارات.</p></div>
+    }
+    else
+    {
+        <ul class="list-group list-group-flush">
+            @foreach (var n in Model.Items)
+            {
+                <li class="list-group-item bg-transparent py-3 @(n.IsRead ? "" : "border-start border-3 border-success")">
+                    <form asp-action="Open" asp-route-id="@n.Id" method="post" class="d-flex gap-3 align-items-start">
+                        <span class="stat-icon" style="width:38px;height:38px;font-size:1rem"><i class="fa-regular fa-bell"></i></span>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="@(n.IsRead ? "" : "fw-semibold")">@n.Title</div>
+                            @if (!string.IsNullOrEmpty(n.Message)) { <div class="small text-muted">@n.Message</div> }
+                            <div class="small text-muted mt-1">@n.CreatedAt.ToMuscatString()</div>
+                        </div>
+                        @if (!string.IsNullOrEmpty(n.Url) || !n.IsRead)
+                        {
+                            <button type="submit" class="btn btn-soft btn-sm">@(string.IsNullOrEmpty(n.Url) ? "تعليم كمقروء" : "فتح")</button>
+                        }
+                    </form>
+                </li>
+            }
+        </ul>
+        <partial name="_Pager" model="Model" />
+    }
+</div>

@@ -1,0 +1,96 @@
+@model CompetitionAdminDetailsViewModel
+@{
+    ViewData["Title"] = Model.NameAr;
+}
+<div class="s3-card mb-4">
+    <div class="team-hero-body">
+        @Html.EntityLogo(Model.LogoPath, Model.NameAr, 72)
+        <div class="flex-grow-1">
+            <h2 class="team-title">@Model.NameAr</h2>
+            <div class="team-meta"><span><i class="fa-solid fa-location-dot me-1"></i>@Model.RegionText</span></div>
+        </div>
+        <div class="team-hero-actions">
+            <a class="btn btn-soft" asp-area="" asp-controller="Competitions" asp-action="Details" asp-route-slug="@Model.Slug" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>الصفحة العامة</a>
+            <a class="btn btn-soft" asp-action="Edit" asp-route-id="@Model.Id"><i class="fa-solid fa-pen me-1"></i>تعديل</a>
+            @if (User.IsAdmin() && Model.Editions.All(e => e.MatchesCount == 0))
+            {
+                <form asp-action="Delete" asp-route-id="@Model.Id" method="post" data-confirm="حذف البطولة؟" data-confirm-danger>
+                    <button class="btn btn-soft text-danger" type="submit"><i class="fa-regular fa-trash-can"></i></button>
+                </form>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-xl-8">
+        <div class="s3-card">
+            <div class="s3-card-header">
+                <h2><i class="fa-solid fa-layer-group me-1"></i>النسخ (المواسم)</h2>
+                <a class="btn btn-primary btn-sm" asp-controller="Editions" asp-action="Create" asp-route-competitionId="@Model.Id"><i class="fa-solid fa-plus me-1"></i>نسخة جديدة</a>
+            </div>
+            @if (Model.Editions.Count == 0)
+            {
+                <div class="empty-state py-4"><i class="fa-solid fa-layer-group d-block"></i><p class="mb-0">أنشئ نسخة لموسم لتبدأ بإضافة الفرق وجدولة المباريات.</p></div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-stack table-hover table-nowrap">
+                        <thead><tr><th>الموسم</th><th>النظام</th><th>الحالة</th><th>الفرق</th><th>المباريات</th><th></th></tr></thead>
+                        <tbody>
+                            @foreach (var e in Model.Editions)
+                            {
+                                <tr>
+                                    <td class="fw-semibold">@e.SeasonName</td>
+                                    <td>@e.Format.GetDisplayName()</td>
+                                    <td><span class="badge text-bg-secondary">@e.Status.GetDisplayName()</span></td>
+                                    <td>@e.TeamsCount</td>
+                                    <td>@e.FinishedCount / @e.MatchesCount</td>
+                                    <td class="text-end"><a class="btn btn-primary btn-sm" asp-controller="Editions" asp-action="Manage" asp-route-id="@e.Id">إدارة</a></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="s3-card">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-user-tie me-1"></i>مسؤولو البطولة</h2></div>
+            @if (Model.Managers.Count == 0)
+            {
+                <div class="s3-card-body text-muted">لا يوجد مسؤولون. يديرها مدراء المنصة.</div>
+            }
+            else
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var m in Model.Managers)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                            <div class="flex-grow-1 min-w-0"><div class="fw-semibold">@m.FullName</div><div class="small text-muted ltr">@m.Email</div></div>
+                            @if (User.IsAdmin())
+                            {
+                                <form asp-action="RemoveManager" asp-route-id="@Model.Id" asp-route-userId="@m.UserId" method="post" data-confirm="إزالة المسؤول؟" data-confirm-danger>
+                                    <button class="btn btn-soft btn-sm text-danger" type="submit"><i class="fa-solid fa-user-minus"></i></button>
+                                </form>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            @if (User.IsAdmin())
+            {
+                <div class="s3-card-body border-top">
+                    <form asp-action="AddManager" asp-route-id="@Model.Id" method="post">
+                        <label class="form-label" for="mgrEmail">تعيين مسؤول بالبريد الإلكتروني</label>
+                        <input id="mgrEmail" name="email" type="email" class="form-control ltr mb-2" required />
+                        <button class="btn btn-soft w-100" type="submit"><i class="fa-solid fa-user-plus me-1"></i>تعيين</button>
+                        <div class="form-text">يُمنح دور "مسؤول بطولة" تلقائياً، ويرى هذه البطولة فقط.</div>
+                    </form>
+                </div>
+            }
+        </div>
+    </div>
+</div>

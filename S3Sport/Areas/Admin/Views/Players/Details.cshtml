@@ -1,0 +1,48 @@
+@model PlayerDetailsViewModel
+@{
+    ViewData["Title"] = Model.FullNameAr;
+}
+<div class="s3-card mb-4">
+    <div class="team-hero-body">
+        @Html.EntityLogo(Model.PhotoPath, Model.FullNameAr, 88)
+        <div class="flex-grow-1 min-w-0">
+            <h2 class="team-title">@Model.FullNameAr</h2>
+            @if (Model.FullNameEn != null) { <div class="text-muted ltr">@Model.FullNameEn</div> }
+            <div class="team-meta">
+                <span><i class="fa-solid fa-shield-halved me-1"></i>@(Model.CurrentTeamName ?? "لاعب حر")</span>
+                @if (Model.ShirtNumber != null) { <span>#@Model.ShirtNumber</span> }
+                @if (Model.Position != null) { <span>@Model.Position</span> }
+                @if (Model.Age != null) { <span>@Model.Age سنة</span> }
+            </div>
+        </div>
+        <div class="team-hero-actions">
+            <a class="btn btn-soft" asp-area="" asp-controller="Players" asp-action="Details" asp-route-id="@Model.Id" target="_blank"><i class="fa-solid fa-arrow-up-right-from-square me-1"></i>الصفحة العامة</a>
+            <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.Id"><i class="fa-solid fa-pen me-1"></i>تعديل</a>
+            <form asp-action="Delete" asp-route-id="@Model.Id" method="post" data-confirm="حذف اللاعب؟" data-confirm-text="لا يمكن حذف لاعب له مشاركات." data-confirm-danger>
+                <button class="btn btn-soft text-danger" type="submit"><i class="fa-regular fa-trash-can"></i></button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="s3-card mb-4">
+    <div class="s3-card-header"><h2><i class="fa-solid fa-right-left me-1"></i>انتقال / إنهاء ارتباط</h2></div>
+    <div class="s3-card-body">
+        <form asp-action="Transfer" asp-route-id="@Model.Id" method="post" class="row g-2 align-items-end"
+              data-confirm="تسجيل الانتقال؟" data-confirm-text="يُغلق ارتباط اللاعب الحالي ويُحفظ في سجله.">
+            <div class="col-md-4">
+                <label class="form-label" for="toTeamId">إلى فريق</label>
+                <select id="toTeamId" name="toTeamId" class="form-select">
+                    <option value="">إنهاء الارتباط (لاعب حر)</option>
+                    @foreach (var t in Model.TransferTeams.Where(t => t.Value != Model.CurrentTeamId?.ToString())) { <option value="@t.Value">@t.Text</option> }
+                </select>
+            </div>
+            <div class="col-md-2"><label class="form-label" for="transferDate">التاريخ</label><input id="transferDate" name="transferDate" type="date" class="form-control" value="@DateTime.UtcNow.ToMuscat().ToString("yyyy-MM-dd")" /></div>
+            <div class="col-md-2"><label class="form-label" for="shirtNumber">رقم القميص</label><input id="shirtNumber" name="shirtNumber" type="number" min="1" max="99" class="form-control" /></div>
+            <div class="col-md-4"><label class="form-label" for="notes">ملاحظات</label><input id="notes" name="notes" class="form-control" maxlength="500" /></div>
+            <div class="col-12"><button class="btn btn-primary" type="submit">تسجيل</button></div>
+        </form>
+    </div>
+</div>
+
+<partial name="_PlayerCareer" model="Model" />

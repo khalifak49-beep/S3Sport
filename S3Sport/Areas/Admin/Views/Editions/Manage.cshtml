@@ -1,0 +1,178 @@
+@model EditionManageViewModel
+@{
+    ViewData["Title"] = $"{Model.CompetitionName} — {Model.SeasonName}";
+    var today = DateTime.UtcNow.ToMuscat();
+    var groupStage = Model.Stages.FirstOrDefault(s => s.StageType == StageType.Group);
+    var isGroupFormat = Model.Format is CompetitionFormat.Groups or CompetitionFormat.Mixed;
+    var hasKnockout = Model.Format is CompetitionFormat.Knockout or CompetitionFormat.Mixed;
+    var fixturesExist = Model.Matches.Count > 0;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <div>
+        <a class="small" asp-controller="Competitions" asp-action="Details" asp-route-id="@Model.CompetitionId"><i class="fa-solid fa-arrow-right me-1"></i>@Model.CompetitionName</a>
+        <h2 class="page-title mt-1">@Model.SeasonName <span class="badge text-bg-secondary fs-6 align-middle">@Model.Format.GetDisplayName()</span> <span class="badge text-bg-info fs-6 align-middle">@Model.Status.GetDisplayName()</span></h2>
+        <div class="small text-muted mt-1">كسر التعادل: @Model.TieBreakersText</div>
+    </div>
+    <div class="d-flex gap-2 flex-wrap">
+        <a class="btn btn-soft" asp-action="Edit" asp-route-id="@Model.Id"><i class="fa-solid fa-gear me-1"></i>الإعدادات</a>
+        <a class="btn btn-soft" asp-controller="Matches" asp-action="Create" asp-route-editionId="@Model.Id"><i class="fa-solid fa-plus me-1"></i>مباراة يدوية</a>
+        <form asp-action="Recalculate" asp-route-id="@Model.Id" method="post"><button class="btn btn-soft" type="submit"><i class="fa-solid fa-rotate me-1"></i>إعادة حساب الترتيب</button></form>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- ===== Teams ===== -->
+    <div class="col-xl-5">
+        <div class="s3-card mb-4">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-shield-halved me-1"></i>الفرق المشاركة (@Model.Teams.Count)</h2></div>
+            @if (Model.Teams.Count > 0)
+            {
+                <ul class="list-group list-group-flush">
+                    @foreach (var t in Model.Teams)
+                    {
+                        <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
+                            @Html.EntityLogo(t.LogoPath, t.NameAr, 30)
+                            <span class="flex-grow-1 text-truncate">@t.NameAr</span>
+                            @if (t.GroupName != null)
+                            {
+                                @if (!fixturesExist && groupStage != null)
+                                {
+                                    <form asp-action="MoveTeam" asp-route-id="@Model.Id" method="post" class="d-inline">
+                                        <input type="hidden" name="competitionTeamId" value="@t.CompetitionTeamId" />
+                                        <select name="groupId" class="form-select form-select-sm py-0" style="width:auto" data-autosubmit aria-label="المجموعة">
+                                            @foreach (var g in groupStage.Groups)
+                                            {
+                                                <option value="@g.Id" selected="@(g.Name == t.GroupName)">@g.Name</option>
+                                            }
+                                        </select>
+                                    </form>
+                                }
+                                else { <span class="badge text-bg-secondary">@t.GroupName</span> }
+                            }
+                            @if (!fixturesExist)
+                            {
+                                <form asp-action="SetSeed" asp-route-id="@Model.Id" method="post" class="d-inline" title="التصنيف (اختياري)">
+                                    <input type="hidden" name="competitionTeamId" value="@t.CompetitionTeamId" />
+                                    <input name="seed" type="number" min="1" max="99" value="@t.Seed" class="form-control form-control-sm py-0" style="width:64px" placeholder="تصنيف" onchange="this.form.submit()" />
+                                </form>
+                            }
+                            @if (!t.HasMatches)
+                            {
+                                <form asp-action="RemoveTeam" asp-route-id="@Model.Id" asp-route-competitionTeamId="@t.CompetitionTeamId" method="post" data-confirm="إزالة الفريق من البطولة؟" data-confirm-danger>
+                                    <button class="btn btn-soft btn-sm text-danger" type="submit" title="إزالة"><i class="fa-solid fa-xmark"></i></button>
+                                </form>
+                            }
+                        </li>
+                    }
+                </ul>
+            }
+            @if (Model.AvailableTeams.Any())
+            {
+                <div class="s3-card-body border-top">
+                    <form asp-action="AddTeams" asp-route-id="@Model.Id" method="post">
+                        <label class="form-label" for="teamIds">إضافة فرق</label>
+                        <select id="teamIds" name="teamIds" class="form-select mb-2" multiple size="6">
+                            @foreach (var t in Model.AvailableTeams) { <option value="@t.Value">@t.Text</option> }
+                        </select>
+                        <button class="btn btn-soft w-100" type="submit"><i class="fa-solid fa-plus me-1"></i>إضافة المحدد</button>
+                    </form>
+                </div>
+            }
+        </div>
+
+        @if (isGroupFormat && !Model.Matches.Any(m => m.GroupName != null))
+        {
+            <div class="s3-card mb-4">
+                <div class="s3-card-header"><h2><i class="fa-solid fa-table-cells-large me-1"></i>المجموعات</h2></div>
+                <div class="s3-card-body">
+                    <form asp-action="SetupGroups" asp-route-id="@Model.Id" method="post" class="row g-2 align-items-end">
+                        <div class="col-6"><label class="form-label" for="groupCount">عدد المجموعات</label><input id="groupCount" name="groupCount" type="number" min="1" max="16" value="@(groupStage?.Groups.Count > 0 ? groupStage.Groups.Count : Math.Max(1, Model.Teams.Count / 4))" class="form-control" /></div>
+                        <div class="col-6"><label class="form-label" for="qpg">المتأهلون من كل مجموعة</label><input id="qpg" name="qualifiersPerGroup" type="number" min="1" max="8" value="2" class="form-control" /></div>
+                        <div class="col-12"><div class="form-check"><input class="form-check-input" type="checkbox" name="shuffle" value="true" id="shuffle" /><label class="form-check-label" for="shuffle">قرعة عشوائية (بدلاً من التوزيع حسب التصنيف)</label></div></div>
+                        <div class="col-12"><button class="btn btn-primary w-100" type="submit">@(groupStage?.Groups.Count > 0 ? "إعادة التوزيع" : "إنشاء المجموعات وتوزيع الفرق")</button></div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- ===== Fixtures ===== -->
+    <div class="col-xl-7">
+        <div class="s3-card mb-4">
+            <div class="s3-card-header"><h2><i class="fa-regular fa-calendar me-1"></i>جدولة المباريات</h2></div>
+            <div class="s3-card-body">
+                @if (Model.Format == CompetitionFormat.Knockout || (Model.Format == CompetitionFormat.Mixed && Model.Matches.Any(m => m.GroupName != null)))
+                {
+                    <form asp-action="@(Model.Format == CompetitionFormat.Knockout && !fixturesExist ? "GenerateFixtures" : "NextKnockoutRound")" asp-route-id="@Model.Id" method="post" class="row g-2 align-items-end">
+                        <input type="hidden" name="daysBetweenRounds" value="7" /><input type="hidden" name="legs" value="1" />
+                        <div class="col-md-4"><label class="form-label">التاريخ</label><input name="@(Model.Format == CompetitionFormat.Knockout && !fixturesExist ? "startDate" : "date")" type="date" class="form-control" value="@today.AddDays(1).ToString("yyyy-MM-dd")" required /></div>
+                        <div class="col-md-3"><label class="form-label">الوقت</label><input name="kickoffTime" type="time" class="form-control" value="17:00" required /></div>
+                        <div class="col-md-5"><label class="form-label">الملعب (اختياري)</label><select name="venueId" class="form-select"><option value="">ملعب صاحب الأرض</option>@foreach (var v in Model.Venues) { <option value="@v.Value">@v.Text</option> }</select></div>
+                        <div class="col-12">
+                            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-sitemap me-1"></i>@(fixturesExist && Model.HasKnockoutStage ? "جدولة الدور الإقصائي التالي" : "جدولة الدور الإقصائي الأول")</button>
+                            <div class="form-text">تُجدول الأدوار تباعاً بعد انتهاء الدور السابق وتحديد الفائزين (بما في ذلك ركلات الترجيح). الفرق المصنفة أعلى تحصل على تأهل مباشر عند عدم اكتمال العدد.</div>
+                        </div>
+                    </form>
+                }
+                @if (Model.Format is CompetitionFormat.League or CompetitionFormat.Groups or CompetitionFormat.Mixed && !Model.Matches.Any(m => m.StageName != null && m.StageName != EditionHelper.KnockoutStageName))
+                {
+                    <form asp-action="GenerateFixtures" asp-route-id="@Model.Id" method="post" class="row g-2 align-items-end">
+                        <div class="col-md-3"><label class="form-label">تاريخ الجولة الأولى</label><input name="startDate" type="date" class="form-control" value="@today.AddDays(1).ToString("yyyy-MM-dd")" required /></div>
+                        <div class="col-md-2"><label class="form-label">الوقت</label><input name="kickoffTime" type="time" class="form-control" value="17:00" required /></div>
+                        <div class="col-md-2"><label class="form-label">أيام بين الجولات</label><input name="daysBetweenRounds" type="number" min="1" max="60" value="7" class="form-control" /></div>
+                        <div class="col-md-2"><label class="form-label">الذهاب والإياب</label><select name="legs" class="form-select"><option value="1">ذهاب فقط</option><option value="2">ذهاب وإياب</option></select></div>
+                        <div class="col-md-3"><label class="form-label">الملعب</label><select name="venueId" class="form-select"><option value="">ملعب صاحب الأرض</option>@foreach (var v in Model.Venues) { <option value="@v.Value">@v.Text</option> }</select></div>
+                        <div class="col-12">
+                            <button class="btn btn-primary" type="submit"><i class="fa-solid fa-wand-magic-sparkles me-1"></i>@(Model.Format == CompetitionFormat.League ? "جدولة الدوري تلقائياً" : "جدولة مباريات المجموعات")</button>
+                            <div class="form-text">كل فريق يواجه كل فريق (في مجموعته) مع توزيع متوازن للأرض. يمكن تعديل موعد أي مباراة بعد الجدولة.</div>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+
+        @foreach (var table in Model.Tables)
+        {
+            <div class="s3-card mb-4">
+                <partial name="_StandingsTable" model="table" />
+            </div>
+        }
+
+        @if (Model.Tables.Count > 0)
+        {
+            <div class="s3-card mb-4">
+                <div class="s3-card-body">
+                    <form asp-action="AdjustPoints" asp-route-id="@Model.Id" method="post" class="row g-2 align-items-end" data-confirm="تعديل نقاط الفريق؟">
+                        <div class="col-md-4"><label class="form-label">تعديل نقاط (خصم/إضافة)</label><select name="teamId" class="form-select">@foreach (var t in Model.Teams) { <option value="@t.TeamId">@t.NameAr</option> }</select></div>
+                        <div class="col-md-2"><label class="form-label">النقاط</label><input name="adjustment" type="number" min="-100" max="100" value="0" class="form-control" /></div>
+                        <div class="col-md-4"><label class="form-label">السبب</label><input name="reason" class="form-control" maxlength="200" /></div>
+                        <div class="col-md-2"><button class="btn btn-soft w-100" type="submit">تطبيق</button></div>
+                    </form>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ===== Matches ===== -->
+<div class="s3-card">
+    <div class="s3-card-header">
+        <h2><i class="fa-solid fa-futbol me-1"></i>المباريات (@Model.Matches.Count)</h2>
+        @foreach (var stage in Model.Stages.Where(s => Model.Matches.Any(m => m.StageName == s.NameAr) && !Model.Matches.Any(m => m.StageName == s.NameAr && m.Status != MatchStatus.Scheduled && m.Status != MatchStatus.Postponed)))
+        {
+            <form asp-action="ClearStageFixtures" asp-route-id="@Model.Id" asp-route-stageId="@stage.Id" method="post"
+                  data-confirm="حذف جدول @stage.NameAr؟" data-confirm-text="تُحذف المباريات غير الملعوبة لإعادة الجدولة." data-confirm-danger>
+                <button class="btn btn-soft btn-sm text-danger" type="submit"><i class="fa-regular fa-trash-can me-1"></i>حذف جدول @stage.NameAr</button>
+            </form>
+        }
+    </div>
+    @if (Model.Matches.Count == 0)
+    {
+        <div class="empty-state py-4"><i class="fa-regular fa-calendar-xmark d-block"></i><p class="mb-0">لم تُجدول مباريات بعد.</p></div>
+    }
+    else
+    {
+        <partial name="_AdminMatchTable" model="Model.Matches" />
+    }
+</div>
