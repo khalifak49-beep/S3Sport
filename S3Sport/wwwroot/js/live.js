@@ -35,9 +35,10 @@
                 x.classList.toggle('d-none', !has);
             });
             if (s.status === 'Finished') {
-                el.querySelectorAll('.mc-kickoff').forEach(x => { x.innerHTML = '<span class="text-muted small">انتهت</span>'; });
+                el.querySelectorAll('.mc-kickoff').forEach(x => { x.innerHTML = '<span>انتهت</span>'; });
             }
             el.classList.toggle('is-live', s.status === 'Live' || s.status === 'HalfTime');
+            if (['Live', 'HalfTime', 'Finished'].includes(s.status)) { el.classList.add('has-score'); }
             el.dataset.liveStatus = s.status;
         });
     };

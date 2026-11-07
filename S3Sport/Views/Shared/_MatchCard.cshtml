@@ -1,48 +1,40 @@
 @model MatchRow
-@* One match row (365-style): kick-off time or live minute, home, score, away. Updated live by live.js. *@
+@* One match row: home team (right), status over score / kick-off time (centre), away team (left). Updated live by live.js. *@
 @{
     var showCompetition = ViewData["ShowCompetition"] as bool? ?? false;
 }
-<a class="match-card @(Model.IsLive ? "is-live" : "")" href="/matches/@Model.Id"
+<a class="match-card @(Model.IsLive ? "is-live" : "") @(Model.HasScore ? "has-score" : "")" href="/matches/@Model.Id"
    data-live-match="@Model.Id" data-status="@Model.Status" data-period="@Model.CurrentPeriod"
    data-period-start="@Model.PeriodStartIso" data-period-duration="@Model.PeriodDurationMinutes">
-    <div class="mc-time">
-        @* The minute slot always exists so a match that kicks off while the page is open shows its live minute. *@
-        <span class="mc-minute @(Model.IsLive ? "" : "d-none")" data-minute>@(Model.Status == MatchStatus.HalfTime ? "استراحة" : "")</span>
-        <span class="mc-kickoff">
-            @if (Model.Status == MatchStatus.Finished)
-            {
-                <span class="text-muted small">انتهت</span>
-            }
-            else if (Model.Status is MatchStatus.Postponed or MatchStatus.Cancelled)
-            {
-                <span class="badge text-bg-warning">@Model.Status.GetDisplayName()</span>
-            }
-            else
-            {
-                <span class="fw-semibold d-block">@Model.KickoffAt.ToMuscatString("HH:mm")</span>
-                <span class="small text-muted">@Model.KickoffAt.ToMuscatString("MM/dd")</span>
-            }
-        </span>
+    @if (showCompetition && Model.CompetitionName != null)
+    {
+        <div class="mc-competition text-truncate">@Model.CompetitionName @(Model.RoundName != null ? "· " + Model.RoundName : "")</div>
+    }
+    <div class="mc-team mc-home">
+        <span class="mc-name">@Model.HomeName</span>
+        @Html.EntityLogo(Model.HomeLogo, Model.HomeName, 30)
     </div>
-    <div class="mc-teams">
-        @if (showCompetition && Model.CompetitionName != null)
-        {
-            <div class="mc-competition text-truncate">@Model.CompetitionName @(Model.RoundName != null ? "· " + Model.RoundName : "")</div>
-        }
-        <div class="mc-team">
-            @Html.EntityLogo(Model.HomeLogo, Model.HomeName, 28)
-            <span class="text-truncate">@Model.HomeName</span>
-            <span class="mc-score" data-home-score>@(Model.HasScore ? Model.HomeScore.ToString() : "")</span>
-        </div>
-        <div class="mc-team">
-            @Html.EntityLogo(Model.AwayLogo, Model.AwayName, 28)
-            <span class="text-truncate">@Model.AwayName</span>
-            <span class="mc-score" data-away-score>@(Model.HasScore ? Model.AwayScore.ToString() : "")</span>
-        </div>
+    <div class="mc-center">
+        <span class="mc-state">
+            @* The minute slot always exists so a match that kicks off while the page is open shows its live minute. *@
+            <span class="mc-minute @(Model.IsLive ? "" : "d-none")" data-minute>@(Model.Status == MatchStatus.HalfTime ? "استراحة" : "")</span>
+            <span class="mc-kickoff">
+                @if (Model.Status == MatchStatus.Finished) { <span>انتهت</span> }
+                else if (Model.Status is MatchStatus.Postponed or MatchStatus.Cancelled) { <span class="mc-flag">@Model.Status.GetDisplayName()</span> }
+                else { <span>@Model.KickoffAt.ToMuscatString("MM/dd")</span> }
+            </span>
+        </span>
+        <span class="mc-result">
+            <span class="mc-score" data-home-score>@(Model.HasScore ? Model.HomeScore.ToString() : "")</span><span class="mc-sep">-</span><span class="mc-score" data-away-score>@(Model.HasScore ? Model.AwayScore.ToString() : "")</span>
+            <span class="mc-ko-time">@Model.KickoffAt.ToMuscatString("HH:mm")</span>
+        </span>
         @if (Model.HomePenaltyScore != null)
         {
-            <div class="mc-pens">ترجيح @Model.HomePenaltyScore - @Model.AwayPenaltyScore</div>
+            <span class="mc-pens">ترجيح @Model.HomePenaltyScore - @Model.AwayPenaltyScore</span>
         }
+    </div>
+    <div class="mc-team mc-away">
+        @Html.EntityLogo(Model.AwayLogo, Model.AwayName, 30)
+        <span class="mc-name">@Model.AwayName</span>
     </div>
 </a>
