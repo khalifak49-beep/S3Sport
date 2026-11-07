@@ -138,7 +138,7 @@ dotnet publish -c Release -o ..\publish
 **ما يفعله النشر:**
 - يبني نسخة Release.
 - يكتب `web.config`، ويأخذ نص الاتصال بقاعدة البيانات من الـ Secrets.
-- يضع `app_offline.htm` حتى يحرر IIS ملفات الـ DLL، ثم يرفع عبر FTPS الملفات المتغيرة فقط، ثم يحذف `app_offline.htm` حتى لو فشل الرفع.
+- يضع `app_offline.htm` حتى يحرر IIS ملفات الـ DLL، ثم يرفع ملفات النسخة عبر SFTP (مفاتيح الخادم مثبتة في `.github/known_hosts`)، ثم يحذف `app_offline.htm` حتى لو فشل الرفع.
 - يتأكد في النهاية أن الموقع يرد.
 
 **ما لا يمسّه:**

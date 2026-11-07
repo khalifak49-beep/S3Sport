@@ -1,4 +1,6 @@
-# Publishes the site to MonsterASP.NET (https://s3sport.runasp.net) over FTPS on every push to main.
+# Publishes the site to MonsterASP.NET (https://s3sport.runasp.net) over SFTP on every push to main.
+# SFTP rather than FTPS: the FTPS certificate chains to a Let's Encrypt root the runners don't trust yet.
+# The server's SSH host keys are pinned in .github/known_hosts (re-run ssh-keyscan if MonsterASP changes them).
 #
 # Repository secrets (Settings → Secrets and variables → Actions):
 #   FTP_SERVER     FTP server from the MonsterASP panel, e.g. site105494.siteasp.net
@@ -7,9 +9,9 @@
 #   DB_CONNECTION  SQL Server connection string of the hosted database
 #
 # Steps: build → write web.config from the secrets (no password in the repository) → put app_offline.htm so IIS
-# releases the DLLs → upload only changed files → remove app_offline.htm (always, even after a failure) → check.
+# releases the DLLs → upload the build → remove app_offline.htm (always, even after a failure) → check.
 # Never touched on the server: App_Data (keys, vapid.json, logs) and wwwroot/uploads (crests, photos).
-# Files are only deleted on the server if an earlier deploy uploaded them and they are gone from the build.
+# Nothing is deleted on the server.
 name: Deploy to MonsterASP
 
 on:
@@ -74,29 +76,21 @@ jobs:
           # Server-side folders that must never be overwritten from the build.
           rm -rf publish/App_Data publish/wwwroot/uploads
 
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp > /dev/null
+
       - name: Take the site offline
         run: |
           echo '<!doctype html><meta charset="utf-8"><title>S3Sport</title><p style="font-family:sans-serif;text-align:center;margin-top:20vh" dir="rtl">جاري تحديث الموقع… أعد المحاولة بعد دقيقة.</p>' > app_offline.htm
-          curl -sS --ssl-reqd --user "$FTP_USER:$FTP_PASSWORD" -T app_offline.htm "ftp://$FTP_SERVER/wwwroot/app_offline.htm"
+          bash .github/sftp.sh "put app_offline.htm -o wwwroot/app_offline.htm"
           sleep 5
 
-      - name: Upload changed files
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USER }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          protocol: ftps
-          local-dir: ./publish/
-          server-dir: wwwroot/
-          exclude: |
-            **/App_Data/**
-            **/wwwroot/uploads/**
-            **/app_offline.htm
+      - name: Upload the build
+        run: bash .github/sftp.sh "mirror -R --parallel=4 --verbose=1 --exclude-glob App_Data/ --exclude-glob wwwroot/uploads/ publish wwwroot"
 
       - name: Bring the site back online
         if: always()
-        run: curl -sS --ssl-reqd --user "$FTP_USER:$FTP_PASSWORD" "ftp://$FTP_SERVER/" -Q "DELE wwwroot/app_offline.htm" -o /dev/null || true
+        run: bash .github/sftp.sh "rm -f wwwroot/app_offline.htm" || true
 
       - name: Check the live site
         run: |
