@@ -3,7 +3,7 @@
 // - Pages: network-first (scores must be fresh), falling back to the cached copy, then to /offline.html.
 // - Never cached: SignalR (/hubs), admin and operator screens, POSTs, JSON state endpoints, uploads.
 // - Web Push: shows the notifications PushWorker sends (see js/push.js for the subscription).
-const CACHE_VERSION = 's3sport-v2';
+const CACHE_VERSION = 's3sport-v3';
 const STATIC_CACHE = `${CACHE_VERSION}-static`;
 const PAGE_CACHE = `${CACHE_VERSION}-pages`;
 const PRECACHE = [
