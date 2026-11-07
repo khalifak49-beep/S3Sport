@@ -130,3 +130,32 @@ dotnet publish -c Release -o ..\publish
 | يُسجَّل خروج المستخدمين بعد كل إعادة تشغيل | صلاحية الكتابة على `App_Data\keys` ناقصة |
 
 لتشخيص مشاكل بدء التشغيل: فعّل `stdoutLogEnabled="true"` مؤقتاً في `web.config` وراجع `App_Data\logs\stdout_*.log`.
+
+## 11) الاستضافة الحالية: MonsterASP.NET مع نشر تلقائي من GitHub
+
+الموقع منشور على `https://s3sport.runasp.net`، وهي استضافة مجانية فيها IIS وقاعدة SQL Server. كل رفع على الفرع `main` يمس مجلد `S3Sport` ينشر الموقع تلقائياً عبر الملف `.github/workflows/deploy.yml`. ويمكن تشغيل النشر يدوياً من تبويب **Actions** في GitHub ← **Deploy to MonsterASP** ← **Run workflow**.
+
+**ما يفعله النشر:**
+- يبني نسخة Release.
+- يكتب `web.config`، ويأخذ نص الاتصال بقاعدة البيانات من الـ Secrets.
+- ينسخ الملفات عبر Web Deploy، ويوقف الموقع ثواني أثناء النسخ.
+- يتأكد في النهاية أن الموقع يرد.
+
+**ما لا يمسّه:**
+- `App_Data`: مفاتيح حماية البيانات، و`vapid.json`، والسجلات.
+- `wwwroot/uploads`: الشعارات والصور.
+- لا يحذف أي ملف موجود على الخادم.
+
+**الـ Secrets المطلوبة في المستودع** (**Settings** ← **Secrets and variables** ← **Actions**):
+
+| الاسم | من أين |
+|---|---|
+| `WEBDEPLOY_SERVER` | لوحة MonsterASP ← الموقع ← Deploy ← WebDeploy (Server) |
+| `WEBDEPLOY_SITE` | نفس الصفحة (Site name) |
+| `WEBDEPLOY_USER` | نفس الصفحة (Username) |
+| `WEBDEPLOY_PASSWORD` | نفس الصفحة (Password) |
+| `DB_CONNECTION` | نص الاتصال بقاعدة البيانات، مثل `Server=db78360.databaseasp.net;Database=db78360;User Id=...;Password=...;TrustServerCertificate=True;Encrypt=True` |
+
+**ملاحظات:**
+- هيكل المجلدات على MonsterASP: ملفات التطبيق (`S3Sport.dll` و`web.config`) في الجذر الخارجي، والملفات الثابتة في `wwwroot` الداخلي.
+- لا تضف قسمَي `<webSocket>` و`<security>` إلى `web.config`: الاستضافة تقفلهما، فيرجع الموقع خطأ 500. SignalR يعمل بدونهما.

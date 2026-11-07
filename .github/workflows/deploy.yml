@@ -1,0 +1,102 @@
+# Publishes the site to MonsterASP.NET (https://s3sport.runasp.net) with Web Deploy on every push to main.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   WEBDEPLOY_SERVER    Web Deploy server shown in the MonsterASP panel, e.g. site12345.siteasp.net
+#   WEBDEPLOY_SITE      Web Deploy site name, e.g. site12345
+#   WEBDEPLOY_USER      Web Deploy user name
+#   WEBDEPLOY_PASSWORD  Web Deploy password
+#   DB_CONNECTION       SQL Server connection string of the hosted database
+#
+# What is left alone on the server: App_Data (data-protection keys, vapid.json, logs) and wwwroot/uploads
+# (team crests, player photos). Nothing on the server is deleted (DoNotDeleteRule). The app is taken offline
+# for the few seconds of the copy (AppOffline), so locked DLLs are not a problem.
+# web.config is generated here from the secrets, so no password is stored in the repository.
+name: Deploy to MonsterASP
+
+on:
+  push:
+    branches: [main]
+    paths: ['S3Sport/**', 'global.json', '.github/workflows/deploy.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Publish
+        run: dotnet publish S3Sport/S3Sport.csproj -c Release -o publish
+
+      - name: Write web.config from secrets
+        shell: pwsh
+        env:
+          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
+        run: |
+          if (-not $env:DB_CONNECTION) { throw 'Secret DB_CONNECTION is missing.' }
+          $db = [System.Security.SecurityElement]::Escape($env:DB_CONNECTION)
+          @"
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <location path="." inheritInChildApplications="false">
+              <system.webServer>
+                <handlers>
+                  <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+                </handlers>
+                <aspNetCore processPath="dotnet" arguments=".\S3Sport.dll" stdoutLogEnabled="true" stdoutLogFile=".\App_Data\logs\stdout" hostingModel="inprocess">
+                  <environmentVariables>
+                    <environmentVariable name="ASPNETCORE_ENVIRONMENT" value="Production" />
+                    <environmentVariable name="ConnectionStrings__DefaultConnection" value="$db" />
+                    <environmentVariable name="Database__AutoMigrate" value="true" />
+                  </environmentVariables>
+                </aspNetCore>
+              </system.webServer>
+            </location>
+          </configuration>
+          "@ | Set-Content -Path publish/web.config -Encoding utf8
+          # Server-side folders that must never be overwritten from the build.
+          Remove-Item -Recurse -Force publish/App_Data, publish/wwwroot/uploads -ErrorAction SilentlyContinue
+
+      - name: Install Web Deploy
+        shell: pwsh
+        run: |
+          $exe = 'C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe'
+          if (-not (Test-Path $exe)) { choco install webdeploy -y --no-progress | Out-Null }
+          if (-not (Test-Path $exe)) { throw 'msdeploy.exe not found after install.' }
+
+      - name: Deploy
+        shell: pwsh
+        env:
+          SERVER: ${{ secrets.WEBDEPLOY_SERVER }}
+          SITE: ${{ secrets.WEBDEPLOY_SITE }}
+          USER: ${{ secrets.WEBDEPLOY_USER }}
+          PASS: ${{ secrets.WEBDEPLOY_PASSWORD }}
+        run: |
+          foreach ($n in 'SERVER','SITE','USER','PASS') { if (-not (Get-Item "env:$n").Value) { throw "Web Deploy secret for $n is missing." } }
+          $exe = 'C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe'
+          $source = (Resolve-Path publish).Path
+          & $exe -verb:sync -allowUntrusted `
+            "-source:contentPath=$source" `
+            "-dest:contentPath=$env:SITE,computerName=https://$($env:SERVER):8172/msdeploy.axd?site=$env:SITE,userName=$env:USER,password=$env:PASS,authType=Basic" `
+            -enableRule:AppOffline -enableRule:DoNotDeleteRule `
+            '-skip:objectName=dirPath,absolutePath=\\App_Data$' `
+            '-skip:objectName=dirPath,absolutePath=\\wwwroot\\uploads$' `
+            -retryAttempts:3 -retryInterval:5000
+          if ($LASTEXITCODE -ne 0) { throw "msdeploy failed ($LASTEXITCODE)." }
+
+      - name: Check the live site
+        shell: pwsh
+        run: |
+          for ($i = 0; $i -lt 12; $i++) {
+            try { $r = Invoke-WebRequest https://s3sport.runasp.net/ -UseBasicParsing -TimeoutSec 30; if ($r.StatusCode -eq 200) { 'Site is up.'; exit 0 } } catch { }
+            Start-Sleep 10
+          }
+          throw 'Site did not answer 200 after the deploy.'
