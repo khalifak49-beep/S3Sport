@@ -1,16 +1,15 @@
-# Publishes the site to MonsterASP.NET (https://s3sport.runasp.net) with Web Deploy on every push to main.
+# Publishes the site to MonsterASP.NET (https://s3sport.runasp.net) over FTPS on every push to main.
 #
 # Repository secrets (Settings → Secrets and variables → Actions):
-#   WEBDEPLOY_SERVER    Web Deploy server shown in the MonsterASP panel, e.g. site12345.siteasp.net
-#   WEBDEPLOY_SITE      Web Deploy site name, e.g. site12345
-#   WEBDEPLOY_USER      Web Deploy user name
-#   WEBDEPLOY_PASSWORD  Web Deploy password
-#   DB_CONNECTION       SQL Server connection string of the hosted database
+#   FTP_SERVER     FTP server from the MonsterASP panel, e.g. site105494.siteasp.net
+#   FTP_USER       main FTP login, e.g. site105494
+#   FTP_PASSWORD   its password
+#   DB_CONNECTION  SQL Server connection string of the hosted database
 #
-# What is left alone on the server: App_Data (data-protection keys, vapid.json, logs) and wwwroot/uploads
-# (team crests, player photos). Nothing on the server is deleted (DoNotDeleteRule). The app is taken offline
-# for the few seconds of the copy (AppOffline), so locked DLLs are not a problem.
-# web.config is generated here from the secrets, so no password is stored in the repository.
+# Steps: build → write web.config from the secrets (no password in the repository) → put app_offline.htm so IIS
+# releases the DLLs → upload only changed files → remove app_offline.htm (always, even after a failure) → check.
+# Never touched on the server: App_Data (keys, vapid.json, logs) and wwwroot/uploads (crests, photos).
+# Files are only deleted on the server if an earlier deploy uploaded them and they are gone from the build.
 name: Deploy to MonsterASP
 
 on:
@@ -25,8 +24,20 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
+    env:
+      FTP_SERVER: ${{ secrets.FTP_SERVER }}
+      FTP_USER: ${{ secrets.FTP_USER }}
+      FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
     steps:
+      - name: Check secrets
+        env:
+          DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
+        run: |
+          for n in FTP_SERVER FTP_USER FTP_PASSWORD DB_CONNECTION; do
+            [ -n "${!n}" ] || { echo "::error::Secret $n is missing (Settings → Secrets and variables → Actions)."; exit 1; }
+          done
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-dotnet@v4
@@ -37,13 +48,11 @@ jobs:
         run: dotnet publish S3Sport/S3Sport.csproj -c Release -o publish
 
       - name: Write web.config from secrets
-        shell: pwsh
         env:
           DB_CONNECTION: ${{ secrets.DB_CONNECTION }}
         run: |
-          if (-not $env:DB_CONNECTION) { throw 'Secret DB_CONNECTION is missing.' }
-          $db = [System.Security.SecurityElement]::Escape($env:DB_CONNECTION)
-          @"
+          db=$(printf '%s' "$DB_CONNECTION" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g')
+          cat > publish/web.config <<EOF
           <?xml version="1.0" encoding="utf-8"?>
           <configuration>
             <location path="." inheritInChildApplications="false">
@@ -61,42 +70,39 @@ jobs:
               </system.webServer>
             </location>
           </configuration>
-          "@ | Set-Content -Path publish/web.config -Encoding utf8
+          EOF
           # Server-side folders that must never be overwritten from the build.
-          Remove-Item -Recurse -Force publish/App_Data, publish/wwwroot/uploads -ErrorAction SilentlyContinue
+          rm -rf publish/App_Data publish/wwwroot/uploads
 
-      - name: Install Web Deploy
-        shell: pwsh
+      - name: Take the site offline
         run: |
-          $exe = 'C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe'
-          if (-not (Test-Path $exe)) { choco install webdeploy -y --no-progress | Out-Null }
-          if (-not (Test-Path $exe)) { throw 'msdeploy.exe not found after install.' }
+          echo '<!doctype html><meta charset="utf-8"><title>S3Sport</title><p style="font-family:sans-serif;text-align:center;margin-top:20vh" dir="rtl">جاري تحديث الموقع… أعد المحاولة بعد دقيقة.</p>' > app_offline.htm
+          curl -sS --ssl-reqd --user "$FTP_USER:$FTP_PASSWORD" -T app_offline.htm "ftp://$FTP_SERVER/wwwroot/app_offline.htm"
+          sleep 5
 
-      - name: Deploy
-        shell: pwsh
-        env:
-          SERVER: ${{ secrets.WEBDEPLOY_SERVER }}
-          SITE: ${{ secrets.WEBDEPLOY_SITE }}
-          USER: ${{ secrets.WEBDEPLOY_USER }}
-          PASS: ${{ secrets.WEBDEPLOY_PASSWORD }}
-        run: |
-          foreach ($n in 'SERVER','SITE','USER','PASS') { if (-not (Get-Item "env:$n").Value) { throw "Web Deploy secret for $n is missing." } }
-          $exe = 'C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe'
-          $source = (Resolve-Path publish).Path
-          & $exe -verb:sync -allowUntrusted `
-            "-source:contentPath=$source" `
-            "-dest:contentPath=$env:SITE,computerName=https://$($env:SERVER):8172/msdeploy.axd?site=$env:SITE,userName=$env:USER,password=$env:PASS,authType=Basic" `
-            -enableRule:AppOffline -enableRule:DoNotDeleteRule `
-            '-skip:objectName=dirPath,absolutePath=\\App_Data$' `
-            '-skip:objectName=dirPath,absolutePath=\\wwwroot\\uploads$' `
-            -retryAttempts:3 -retryInterval:5000
-          if ($LASTEXITCODE -ne 0) { throw "msdeploy failed ($LASTEXITCODE)." }
+      - name: Upload changed files
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./publish/
+          server-dir: wwwroot/
+          exclude: |
+            **/App_Data/**
+            **/wwwroot/uploads/**
+            **/app_offline.htm
+
+      - name: Bring the site back online
+        if: always()
+        run: curl -sS --ssl-reqd --user "$FTP_USER:$FTP_PASSWORD" "ftp://$FTP_SERVER/" -Q "DELE wwwroot/app_offline.htm" -o /dev/null || true
 
       - name: Check the live site
-        shell: pwsh
         run: |
-          for ($i = 0; $i -lt 12; $i++) {
-            try { $r = Invoke-WebRequest https://s3sport.runasp.net/ -UseBasicParsing -TimeoutSec 30; if ($r.StatusCode -eq 200) { 'Site is up.'; exit 0 } } catch { }
-            Start-Sleep 10
-          }
-          throw 'Site did not answer 200 after the deploy.'
+          for i in $(seq 1 12); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' https://s3sport.runasp.net/)
+            [ "$code" = 200 ] && { echo "Site is up."; exit 0; }
+            echo "status $code, waiting…"; sleep 10
+          done
+          echo "::error::Site did not answer 200 after the deploy."; exit 1

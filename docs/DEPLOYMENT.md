@@ -138,7 +138,7 @@ dotnet publish -c Release -o ..\publish
 **ما يفعله النشر:**
 - يبني نسخة Release.
 - يكتب `web.config`، ويأخذ نص الاتصال بقاعدة البيانات من الـ Secrets.
-- ينسخ الملفات عبر Web Deploy، ويوقف الموقع ثواني أثناء النسخ.
+- يضع `app_offline.htm` حتى يحرر IIS ملفات الـ DLL، ثم يرفع عبر FTPS الملفات المتغيرة فقط، ثم يحذف `app_offline.htm` حتى لو فشل الرفع.
 - يتأكد في النهاية أن الموقع يرد.
 
 **ما لا يمسّه:**
@@ -150,10 +150,9 @@ dotnet publish -c Release -o ..\publish
 
 | الاسم | من أين |
 |---|---|
-| `WEBDEPLOY_SERVER` | لوحة MonsterASP ← الموقع ← Deploy ← WebDeploy (Server) |
-| `WEBDEPLOY_SITE` | نفس الصفحة (Site name) |
-| `WEBDEPLOY_USER` | نفس الصفحة (Username) |
-| `WEBDEPLOY_PASSWORD` | نفس الصفحة (Password) |
+| `FTP_SERVER` | لوحة MonsterASP ← الموقع ← FTP / SFTP access (Server)، مثل `site105494.siteasp.net` |
+| `FTP_USER` | نفس الصفحة (Login) |
+| `FTP_PASSWORD` | نفس الصفحة (Password) |
 | `DB_CONNECTION` | نص الاتصال بقاعدة البيانات، مثل `Server=db78360.databaseasp.net;Database=db78360;User Id=...;Password=...;TrustServerCertificate=True;Encrypt=True` |
 
 **ملاحظات:**
