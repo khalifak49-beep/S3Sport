@@ -50,13 +50,34 @@
         return true;
     };
 
-    const open = async () => {
+    // Chrome may offer the install a few seconds after the page opens. A tap that comes first waits for it
+    // (up to 4 s, inside the tap's ~5 s activation window) so the system install dialog still opens directly.
+    let promptWaiters = [];
+    const waitForPrompt = ms => deferred ? Promise.resolve(true) : new Promise(resolve => {
+        const t = setTimeout(() => { promptWaiters = promptWaiters.filter(w => w !== done); resolve(false); }, ms);
+        const done = () => { clearTimeout(t); resolve(true); };
+        promptWaiters.push(done);
+    });
+
+    const setBusy = (btn, busy) => {
+        if (!btn) { return; }
+        if (busy) { btn.dataset.label = btn.innerHTML; btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>'; btn.disabled = true; }
+        else if (btn.dataset.label) { btn.innerHTML = btn.dataset.label; btn.disabled = false; }
+    };
+
+    const open = async btn => {
+        if (!isIOS && !deferred && !inApp) {
+            setBusy(btn, true);
+            await waitForPrompt(4000);
+            setBusy(btn, false);
+        }
         if (await nativeInstall()) { return; }
         showTab(isIOS ? 'ios' : 'android');
         bootstrap.Modal.getOrCreateInstance(modalEl).show();
     };
     document.addEventListener('click', e => {
-        if (e.target.closest('[data-install-open]')) { e.preventDefault(); open(); }
+        const btn = e.target.closest('[data-install-open]');
+        if (btn) { e.preventDefault(); open(btn); }
         if (e.target.closest('[data-install-dismiss]')) { store.set(Date.now()); bar?.classList.add('d-none'); }
     });
     modalEl.querySelector('[data-install-native]')?.addEventListener('click', async () => {
@@ -69,14 +90,19 @@
 
     const showBar = () => { if (bar && isPhone && !snoozed()) { bar.classList.remove('d-none'); } };
 
-    window.addEventListener('beforeinstallprompt', e => {
+    const onPrompt = e => {
         e.preventDefault(); // our own bar replaces Chrome's mini banner
         deferred = e;
         modalEl.querySelector('[data-install-native]')?.classList.remove('d-none');
+        promptWaiters.splice(0).forEach(w => w());
         showBar();
-    });
+    };
+    // The layout catches the event early (before this script runs) in window.__s3InstallPrompt.
+    if (window.__s3InstallPrompt) { onPrompt(window.__s3InstallPrompt); }
+    window.addEventListener('beforeinstallprompt', onPrompt);
     window.addEventListener('appinstalled', () => { deferred = null; hideAll(); });
 
-    // Phones that never get the browser prompt (iPhone, Samsung Internet, in-app browsers) still see the bar.
-    setTimeout(showBar, 2500);
+    // Android: the bar comes with the install offer (so its button installs directly); browsers that never
+    // offer it (Samsung Internet, Firefox) get the bar later with the steps. iPhone: after 2.5 s.
+    setTimeout(showBar, isIOS || inApp ? 2500 : 8000);
 })();
