@@ -136,12 +136,12 @@
                 <div class="mb-3" id="playerField">
                     <label class="form-label" for="evPlayer" id="evPlayerLabel">اللاعب</label>
                     <select class="form-select" id="evPlayer" name="PlayerId"></select>
-                    <input class="form-control d-none" id="evPlayerText" name="PlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled />
+                    <input class="form-control d-none" id="evPlayerText" name="PlayerName" maxlength="100" placeholder="رقم القميص أو الاسم (اختياري)" disabled />
                 </div>
                 <div class="mb-3" id="relatedField">
                     <label class="form-label" for="evRelated" id="evRelatedLabel">صانع الهدف (اختياري)</label>
                     <select class="form-select" id="evRelated" name="RelatedPlayerId"></select>
-                    <input class="form-control d-none" id="evRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled />
+                    <input class="form-control d-none" id="evRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="رقم القميص أو الاسم (اختياري)" disabled />
                 </div>
                 <div class="row g-2 mb-3">
                     <div class="col-6"><label class="form-label" for="evMinute">الدقيقة</label><input class="form-control" id="evMinute" name="Minute" type="number" min="0" max="200" /></div>
@@ -179,8 +179,8 @@
                         <option value="@Model.AwayTeamId">@Model.AwayName</option>
                     </select>
                 </div>
-                <div class="mb-3" id="cPlayerField"><label class="form-label" for="cPlayer">اللاعب</label><select class="form-select" id="cPlayer" name="PlayerId"></select><input class="form-control d-none" id="cPlayerText" name="PlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled /></div>
-                <div class="mb-3" id="cRelatedField"><label class="form-label" for="cRelated">اللاعب المرتبط</label><select class="form-select" id="cRelated" name="RelatedPlayerId"></select><input class="form-control d-none" id="cRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="اسم اللاعب (فريق ضيف)" disabled /></div>
+                <div class="mb-3" id="cPlayerField"><label class="form-label" for="cPlayer">اللاعب</label><select class="form-select" id="cPlayer" name="PlayerId"></select><input class="form-control d-none" id="cPlayerText" name="PlayerName" maxlength="100" placeholder="رقم القميص أو الاسم (اختياري)" disabled /></div>
+                <div class="mb-3" id="cRelatedField"><label class="form-label" for="cRelated">اللاعب المرتبط</label><select class="form-select" id="cRelated" name="RelatedPlayerId"></select><input class="form-control d-none" id="cRelatedText" name="RelatedPlayerName" maxlength="100" placeholder="رقم القميص أو الاسم (اختياري)" disabled /></div>
                 <div class="row g-2 mb-3">
                     <div class="col-6"><label class="form-label" for="cMinute">الدقيقة</label><input class="form-control" id="cMinute" name="Minute" type="number" min="0" max="200" required /></div>
                     <div class="col-6"><label class="form-label" for="cExtra">+</label><input class="form-control" id="cExtra" name="ExtraMinute" type="number" min="0" max="30" /></div>

@@ -139,19 +139,39 @@ ev tm_a.jar MatchStarted > /dev/null
 check "guest goal with typed scorer" 200 "$(ev tm_a.jar Goal TeamId=$G "PlayerName=$(urlenc "سعيد الضيف")" Minute=10)"
 check "scorer name stored" 1 "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND PlayerNameText=N'سعيد الضيف' AND PlayerId IS NULL")"
 check "goal notification names guest scorer" 1 "$(sql "SELECT COUNT(*) FROM Notifications n JOIN AspNetUsers u ON u.Id=n.UserId WHERE u.Email='$FAN' AND n.MatchId=$M AND n.Type=1 AND n.Message LIKE N'%سعيد الضيف%'")"
-check "guest substitution needs both names" 400 "$(ev tm_a.jar Substitution TeamId=$G "PlayerName=$(urlenc "خارج")" Minute=30)"
+check "guest substitution without names allowed" 200 "$(ev tm_a.jar Substitution TeamId=$G Minute=30)"
 check "guest substitution same name refused" 400 "$(ev tm_a.jar Substitution TeamId=$G "PlayerName=$(urlenc "نفس")" "RelatedPlayerName=$(urlenc "نفس")" Minute=30)"
 check "guest substitution with names" 200 "$(ev tm_a.jar Substitution TeamId=$G "PlayerName=$(urlenc "خالد")" "RelatedPlayerName=$(urlenc "ماجد")" Minute=31)"
 check "fan: substitution names" 1 "$(sql "SELECT COUNT(*) FROM Notifications n JOIN AspNetUsers u ON u.Id=n.UserId WHERE u.Email='$FAN' AND n.MatchId=$M AND n.Type=11 AND n.Message LIKE N'%ماجد%' AND n.Message LIKE N'%خالد%'")"
 check "live state shows typed names" 1 "$(curl -s -b tm_a.jar $BASE/MatchControl/State/$M | grep -o '"relatedPlayerName":"ماجد"' | wc -l)"
 check "own team: typed name ignored, player id used" 200 "$(ev tm_a.jar Goal TeamId=$TA PlayerId=$P1 "PlayerName=$(urlenc "مزيف")" Minute=40)"
 check "no typed name on platform team event" 0 "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND TeamId=$TA AND PlayerNameText IS NOT NULL")"
-check "own team substitution still needs registered players" 400 "$(ev tm_a.jar Substitution TeamId=$TA "PlayerName=$(urlenc "أ")" "RelatedPlayerName=$(urlenc "ب")" Minute=41)"
+check "own team (has players) substitution still needs both players" 400 "$(ev tm_a.jar Substitution TeamId=$TA "PlayerName=$(urlenc "أ")" Minute=41)"
+check "own team: unregistered substitute typed" 200 "$(ev tm_a.jar Substitution TeamId=$TA PlayerId=$P1 "RelatedPlayerName=$(urlenc "لاعب جديد")" Minute=42)"
+check "…stored as typed name, id kept for the other" 1 "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND TeamId=$TA AND EventType=8 AND PlayerId=$P1 AND RelatedPlayerId IS NULL AND RelatedPlayerNameText=N'لاعب جديد'")"
 EID=$(sql "SELECT Id FROM MatchEvents WHERE MatchId=$M AND PlayerNameText=N'سعيد الضيف'")
 TOK=$(token tm_a.jar /MatchControl/Index/$M)
 check "correct guest scorer name" 200 "$(post tm_a.jar "/MatchControl/CorrectEvent/$M?eventId=$EID" "$TOK" -d TeamId=$G -d "PlayerName=$(urlenc "سعيد العامري")" -d Minute=11 -d "Reason=$(urlenc "تصحيح الاسم")")"
 check "name corrected, history kept" "1/1" "$(sql "SELECT CONCAT(SUM(CASE WHEN e.PlayerNameText=N'سعيد العامري' THEN 1 ELSE 0 END),'/',(SELECT COUNT(*) FROM MatchEventRevisions WHERE MatchEventId=$EID)) FROM MatchEvents e WHERE e.Id=$EID")"
 check "score 1-1" "1-1" "$(sql "SELECT CONCAT(HomeScore,'-',AwayScore) FROM Matches WHERE Id=$M")"
+
+echo "== Live vs a platform team that registered no players: shirt number or name, optional"
+sql "INSERT INTO Teams(SportId,NameAr,NameEn,Slug,Status,IsDeleted,CreatedAt) VALUES(1,N'بلا لاعبين $R','NoSquad $R','tm-ns-$R',1,0,SYSUTCDATETIME()); INSERT INTO TeamAreas(TeamId,AreaId,IsPrimary) VALUES(SCOPE_IDENTITY(),$KHOUDH,1);" > /dev/null
+TN=$(sql "SELECT Id FROM Teams WHERE Slug='tm-ns-$R'")
+TOK=$(token tm_a.jar /MyTeams/CreateMatch/$TA)
+post tm_a.jar /MyTeams/SaveMatch "$TOK" -d Id=0 -d TeamId=$TA -d OpponentTeamId=$TN -d IsHome=true -d KickoffLocal=2026-11-29T17:00 > /dev/null
+M=$(sql "SELECT MAX(Id) FROM Matches WHERE OrganizerTeamId=$TA AND AwayTeamId=$TN AND IsDeleted=0")
+check "opponent squad empty on the operator screen" 1 "$(curl -s -b tm_a.jar $BASE/MatchControl/Index/$M | grep -c 'id="opAwaySquad">\[\]<')"
+ev tm_a.jar MatchStarted > /dev/null
+check "goal with no scorer" 200 "$(ev tm_a.jar Goal TeamId=$TN Minute=5)"
+check "goal by shirt number" 200 "$(ev tm_a.jar Goal TeamId=$TN PlayerName=7 Minute=9)"
+check "…stored as رقم 7" 1 "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND TeamId=$TN AND PlayerNameText=N'رقم 7' AND PlayerId IS NULL")"
+check "yellow card by name" 200 "$(ev tm_a.jar YellowCard TeamId=$TN "PlayerName=$(urlenc "أحمد")" Minute=12)"
+check "substitution without names" 200 "$(ev tm_a.jar Substitution TeamId=$TN Minute=20)"
+check "substitution by numbers" 200 "$(ev tm_a.jar Substitution TeamId=$TN PlayerName=5 RelatedPlayerName=14 Minute=21)"
+check "…both numbers stored" 1 "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND EventType=8 AND PlayerNameText=N'رقم 5' AND RelatedPlayerNameText=N'رقم 14'")"
+check "a player of the other team is refused" 400 "$(ev tm_a.jar Goal TeamId=$TN PlayerId=$P1 Minute=25)"
+check "score 0-2" "0-2" "$(sql "SELECT CONCAT(HomeScore,'-',AwayScore) FROM Matches WHERE Id=$M")"
 
 echo
 echo "RESULT: $PASS passed, $FAIL failed"

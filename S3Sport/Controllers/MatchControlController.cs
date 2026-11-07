@@ -84,7 +84,7 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
         if (!ModelState.IsValid) return Fail("بيانات الحدث غير مكتملة.");
 
         var type = input.EventType!.Value;
-        await NormalizePlayersAsync(input, type);
+        var hasRoster = await NormalizePlayersAsync(input, type, id);
         string? error = null;
         var duplicate = false;
 
@@ -103,7 +103,7 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
                     return;
                 }
                 var match = await db.Matches.Include(x => x.Stage).FirstAsync(x => x.Id == id);
-                error = MatchLiveHelper.Validate(match, type, input.TeamId, input.PlayerId, input.RelatedPlayerId, input.PlayerName, input.RelatedPlayerName)
+                error = MatchLiveHelper.Validate(match, type, input.TeamId, input.PlayerId, input.RelatedPlayerId, input.PlayerName, input.RelatedPlayerName, hasRoster)
                         ?? await ValidatePlayersAsync(match, input);
                 if (error != null) return;
 
@@ -184,10 +184,10 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
             if (!isState)
             {
                 if (input.TeamId != match.HomeTeamId && input.TeamId != match.AwayTeamId) { error = "اختر الفريق."; return; }
-                await NormalizePlayersAsync(players, ev.EventType);
+                var hasRoster = await NormalizePlayersAsync(players, ev.EventType, id);
                 var hasOut = players.PlayerId != null || players.PlayerName != null;
                 var hasIn = players.RelatedPlayerId != null || players.RelatedPlayerName != null;
-                if (ev.EventType == MatchEventType.Substitution && !(hasOut && hasIn)) { error = "التبديل يحتاج اللاعب الخارج واللاعب الداخل."; return; }
+                if (ev.EventType == MatchEventType.Substitution && hasRoster && !(hasOut && hasIn)) { error = "التبديل يحتاج اللاعب الخارج واللاعب الداخل."; return; }
                 error = await ValidatePlayersAsync(match, players);
                 if (error != null) return;
             }
@@ -371,21 +371,31 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
     }, SnapshotJson);
 
     /// <summary>
-    /// A guest team has no registered players: its events carry typed names instead of ids.
-    /// Platform teams always use ids (names are dropped), so statistics stay linked to real players.
+    /// A player is either picked from the team's registered players (an id, which keeps statistics linked) or typed as
+    /// a shirt number / name for a player the platform doesn't know: an opponent that registered no players, a guest
+    /// team, an unregistered substitute. An id wins over typed text; guest teams never carry ids. A bare number is
+    /// stored as "رقم N". Returns whether the team has registered players for this match; without them, naming the
+    /// players is optional for every event, substitutions included.
     /// </summary>
-    private async Task NormalizePlayersAsync(EventInput input, MatchEventType type)
+    private async Task<bool> NormalizePlayersAsync(EventInput input, MatchEventType type, int matchId)
     {
-        static string? Clean(string? s) => s?.Trim() is { Length: > 0 } t ? t : null;
-        var isGuest = !MatchLiveHelper.IsStateEvent(type) && input.TeamId != null
-                      && await db.Teams.AnyAsync(t => t.Id == input.TeamId && t.Status == TeamStatus.Guest);
-        if (isGuest)
+        static string? Clean(string? s)
         {
-            input.PlayerId = input.RelatedPlayerId = null;
-            input.PlayerName = Clean(input.PlayerName);
-            input.RelatedPlayerName = Clean(input.RelatedPlayerName);
+            var t = s?.Trim();
+            if (string.IsNullOrEmpty(t)) return null;
+            return t.All(char.IsDigit) ? $"رقم {t}" : t;
         }
-        else input.PlayerName = input.RelatedPlayerName = null;
+        if (MatchLiveHelper.IsStateEvent(type) || input.TeamId == null)
+        {
+            input.PlayerName = input.RelatedPlayerName = null;
+            return true;
+        }
+        var isGuest = await db.Teams.AnyAsync(t => t.Id == input.TeamId && t.Status == TeamStatus.Guest);
+        if (isGuest) input.PlayerId = input.RelatedPlayerId = null;
+        input.PlayerName = input.PlayerId != null ? null : Clean(input.PlayerName);
+        input.RelatedPlayerName = input.RelatedPlayerId != null ? null : Clean(input.RelatedPlayerName);
+        return !isGuest && (await db.TeamPlayers.AnyAsync(tp => tp.TeamId == input.TeamId && tp.IsActive)
+                            || await db.MatchLineups.AnyAsync(l => l.MatchId == matchId && l.TeamId == input.TeamId));
     }
 
     private static bool IsDuplicateRequest(DbUpdateException ex) =>

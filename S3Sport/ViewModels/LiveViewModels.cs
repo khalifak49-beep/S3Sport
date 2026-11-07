@@ -49,7 +49,7 @@ public class EventInput
     public int? TeamId { get; set; }
     public int? PlayerId { get; set; }
     public int? RelatedPlayerId { get; set; }
-    /// <summary>Guest team only: typed player names.</summary>
+    /// <summary>A typed shirt number or name, used when no registered player is picked.</summary>
     [StringLength(100)] public string? PlayerName { get; set; }
     [StringLength(100)] public string? RelatedPlayerName { get; set; }
     [Range(0, 200)] public int? Minute { get; set; }

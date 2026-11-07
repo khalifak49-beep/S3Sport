@@ -30,7 +30,7 @@ public static class MatchLiveHelper
 
     /// <summary>Validates a new event against the current state. Returns an Arabic error or null.</summary>
     public static string? Validate(Match match, MatchEventType type, int? teamId, int? playerId, int? relatedPlayerId,
-        string? playerName = null, string? relatedPlayerName = null)
+        string? playerName = null, string? relatedPlayerName = null, bool hasRoster = true)
     {
         if (match.Status == MatchStatus.Cancelled) return "المباراة ملغاة.";
         if (IsStateEvent(type))
@@ -45,10 +45,11 @@ public static class MatchLiveHelper
         if (match.Status == MatchStatus.Finished) return "المباراة منتهية؛ استخدم تصحيح الأحداث.";
         if (match.Status == MatchStatus.HalfTime && type != MatchEventType.Substitution) return "الاستراحة: يمكن تسجيل التبديلات فقط.";
         if (teamId != match.HomeTeamId && teamId != match.AwayTeamId) return "اختر الفريق.";
-        // A guest team's players are typed names instead of ids.
+        // A player is an id from the team's squad or a typed shirt number / name.
         var playerOut = playerId?.ToString() ?? playerName;
         var playerIn = relatedPlayerId?.ToString() ?? relatedPlayerName;
-        if (type == MatchEventType.Substitution && (playerOut == null || playerIn == null))
+        // A team without registered players may record a substitution without naming anyone.
+        if (type == MatchEventType.Substitution && hasRoster && (playerOut == null || playerIn == null))
             return "التبديل يحتاج اللاعب الخارج واللاعب الداخل.";
         if (playerIn != null && playerIn == playerOut) return "لا يمكن أن يكون اللاعب نفسه.";
         return null;

@@ -14,14 +14,37 @@
         home: JSON.parse(document.getElementById('opHomeSquad').textContent),
         away: JSON.parse(document.getElementById('opAwaySquad').textContent)
     };
-    // A guest team has no registered players: its player fields are free-text names instead of selects.
+    // A team without registered players (a guest team, or an opponent that added none) gets a free-text box for
+    // the shirt number or name, optional. A team with players gets the list plus "unregistered player" → text box.
     const guest = { home: root.dataset.homeGuest === '1', away: root.dataset.awayGuest === '1' };
+    const OTHER = 'other';
+    const textOnly = side => guest[side] || squads[side].length === 0;
     const usePlayerInputs = (selectId, textId, side) => {
         const select = document.getElementById(selectId), text = document.getElementById(textId);
-        select.classList.toggle('d-none', guest[side]); select.disabled = guest[side];
-        text.classList.toggle('d-none', !guest[side]); text.disabled = !guest[side];
-        return guest[side] ? text : select;
+        select.dataset.side = side;
+        const only = textOnly(side), typed = only || select.value === OTHER;
+        select.classList.toggle('d-none', only); select.disabled = only;
+        text.classList.toggle('d-none', !typed); text.disabled = !typed;
+        if (!typed) { text.value = ''; }
+        return typed ? text : select;
     };
+    const setPlayer = (selectId, textId, side, id, name) => {
+        const select = document.getElementById(selectId), text = document.getElementById(textId);
+        select.value = id ?? (name && !textOnly(side) ? OTHER : '');
+        usePlayerInputs(selectId, textId, side);
+        if (id == null && name) { text.value = name; }
+    };
+    const dropOther = data => {
+        if (data.PlayerId === OTHER) { delete data.PlayerId; }
+        if (data.RelatedPlayerId === OTHER) { delete data.RelatedPlayerId; }
+        return data;
+    };
+    for (const [s, t] of [['evPlayer', 'evPlayerText'], ['evRelated', 'evRelatedText'], ['cPlayer', 'cPlayerText'], ['cRelated', 'cRelatedText']]) {
+        document.getElementById(s).addEventListener('change', e => {
+            usePlayerInputs(s, t, e.target.dataset.side);
+            if (e.target.value === OTHER) { document.getElementById(t).focus(); }
+        });
+    }
     let state = JSON.parse(document.getElementById('opState').textContent);
     const eventModal = new bootstrap.Modal('#eventModal');
     const correctModal = new bootstrap.Modal('#correctModal');
@@ -182,6 +205,7 @@
             const label = `${p.number != null ? p.number + ' · ' : ''}${p.name}${p.isStarter ? ' (أساسي)' : p.inLineup ? ' (احتياط)' : ''}`;
             select.add(new Option(label, p.id));
         }
+        if (!textOnly(side)) { select.add(new Option('✎ لاعب غير مسجل — اكتب الرقم أو الاسم', OTHER)); }
     };
 
     // ---------- new events ----------
@@ -214,7 +238,7 @@
         eventForm.Minute.value = isState && type === 'MatchStarted' ? 0 : now.minute;
         eventForm.ExtraMinute.value = now.extra ?? '';
         eventModal.show();
-        if (!isState) { setTimeout(() => document.getElementById(guest[side] ? 'evPlayerText' : 'evPlayer').focus(), 300); }
+        if (!isState) { setTimeout(() => document.getElementById(textOnly(side) ? 'evPlayerText' : 'evPlayer').focus(), 300); }
     };
 
     eventForm.addEventListener('submit', async e => {
@@ -222,7 +246,7 @@
         const submit = document.getElementById('eventSubmit');
         if (submit.disabled) { return; }
         submit.disabled = true;
-        const data = Object.fromEntries(new FormData(eventForm).entries());
+        const data = dropOther(Object.fromEntries(new FormData(eventForm).entries()));
         try {
             const json = await post(`/MatchControl/AddEvent/${matchId}`, data);
             closeModal(eventModal, document.getElementById('eventModal'));
@@ -287,12 +311,8 @@
             const side = ev.side || 'home';
             correctForm.TeamId.value = teams[side];
             fillCorrectionPlayers(side);
-            correctForm.PlayerId.value = ev.playerId ?? '';
-            correctForm.RelatedPlayerId.value = ev.relatedPlayerId ?? '';
-            if (guest[side]) {
-                correctForm.PlayerName.value = ev.playerName ?? '';
-                correctForm.RelatedPlayerName.value = ev.relatedPlayerName ?? '';
-            }
+            setPlayer('cPlayer', 'cPlayerText', side, ev.playerId, ev.playerName);
+            setPlayer('cRelated', 'cRelatedText', side, ev.relatedPlayerId, ev.relatedPlayerName);
         }
         correctForm.Minute.value = ev.minute;
         correctForm.ExtraMinute.value = ev.extraMinute ?? '';
@@ -309,7 +329,7 @@
 
     correctForm.addEventListener('submit', async e => {
         e.preventDefault();
-        const data = Object.fromEntries(new FormData(correctForm).entries());
+        const data = dropOther(Object.fromEntries(new FormData(correctForm).entries()));
         if (!data.Reason || !data.Reason.trim()) { document.getElementById('correctError').textContent = 'سبب التصحيح مطلوب.'; return; }
         if (isStateType(editing.type)) { delete data.TeamId; delete data.PlayerId; delete data.RelatedPlayerId; delete data.PlayerName; delete data.RelatedPlayerName; }
         try {
