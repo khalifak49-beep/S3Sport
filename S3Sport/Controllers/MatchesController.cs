@@ -75,7 +75,9 @@ public class MatchesController(ApplicationDbContext db) : Controller
                 Row = new LineupRow
                 {
                     PlayerId = l.PlayerId, Name = l.Player.FullNameAr, Number = l.ShirtNumber,
-                    Position = l.Position != null ? l.Position.NameAr : null, IsStarter = l.IsStarter, IsCaptain = l.IsCaptain
+                    Position = l.Position != null ? l.Position.NameAr : l.Player.Position != null ? l.Player.Position.NameAr : null,
+                    PositionCode = l.Position != null ? l.Position.Code : l.Player.Position != null ? l.Player.Position.Code : null,
+                    PhotoPath = l.Player.PhotoPath, IsStarter = l.IsStarter, IsCaptain = l.IsCaptain
                 }
             }).ToListAsync();
 

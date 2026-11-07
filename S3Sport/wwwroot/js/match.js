@@ -80,6 +80,49 @@
         }
     };
 
+    // Lineup: team switch, and per-player marks (goals, cards, substitutions) drawn from the same live events.
+    document.querySelectorAll('[data-lineup-show]').forEach(btn => btn.addEventListener('click', () => {
+        document.querySelectorAll('[data-lineup-show]').forEach(b => {
+            const on = b === btn;
+            b.classList.toggle('active', on);
+            b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        });
+        document.querySelectorAll('[data-lineup-panel]').forEach(p => p.classList.toggle('d-none', p.dataset.lineupPanel !== btn.dataset.lineupShow));
+    }));
+
+    const minuteText = ev => `${ev.minute}${ev.extraMinute ? '+' + ev.extraMinute : ''}'`;
+    const renderLineupMarks = () => {
+        const marks = new Map(); // playerId -> { goals, ownGoals, yellow, red, off, on }
+        const of = id => { if (!marks.has(id)) { marks.set(id, { goals: 0, ownGoals: 0, yellow: 0, red: 0 }); } return marks.get(id); };
+        for (const ev of state.events) {
+            if (ev.isCancelled) { continue; }
+            if (ev.playerId) {
+                const m = of(ev.playerId);
+                if (ev.type === 'Goal' || ev.type === 'PenaltyGoal') { m.goals++; }
+                else if (ev.type === 'OwnGoal') { m.ownGoals++; }
+                else if (ev.type === 'YellowCard') { m.yellow++; }
+                else if (ev.type === 'RedCard') { m.red++; }
+                else if (ev.type === 'SecondYellowCard') { m.yellow++; m.red++; }
+                else if (ev.type === 'Substitution') { m.off = minuteText(ev); }
+            }
+            if (ev.type === 'Substitution' && ev.relatedPlayerId) { of(ev.relatedPlayerId).on = minuteText(ev); }
+        }
+        document.querySelectorAll('[data-lineup-player]').forEach(el => {
+            const m = marks.get(Number(el.dataset.lineupPlayer)) || { goals: 0, ownGoals: 0, yellow: 0, red: 0 };
+            const badges = el.querySelector('[data-badges]');
+            const parts = [];
+            const ball = (cls, n, title) => `<span class="lp-mark lp-ball ${cls}" title="${title}"><i class="fa-solid fa-futbol"></i>${n > 1 ? `<b>${n}</b>` : ''}</span>`;
+            if (m.goals) { parts.push(ball('', m.goals, 'هدف')); }
+            if (m.ownGoals) { parts.push(ball('is-own', m.ownGoals, 'هدف عكسي')); }
+            if (m.red) { parts.push('<span class="lp-mark lp-card red" title="بطاقة حمراء"></span>'); }
+            else if (m.yellow) { parts.push('<span class="lp-mark lp-card yellow" title="بطاقة صفراء"></span>'); }
+            badges.innerHTML = parts.join('');
+            const sub = el.querySelector('[data-sub]');
+            sub.innerHTML = m.off ? `<span class="lp-off" title="خروج"><i class="fa-solid fa-arrow-down"></i>${m.off}</span>`
+                : m.on ? `<span class="lp-on" title="دخول"><i class="fa-solid fa-arrow-up"></i>${m.on}</span>` : '';
+        });
+    };
+
     // Events already on screen; only events that arrive while the page is open make a sound.
     const heard = new Set(state.events.map(e => e.id));
     const newEventTypes = s => {
@@ -99,6 +142,7 @@
             return;
         }
         state = s;
+        renderLineupMarks();
         render();
     };
     document.addEventListener('s3:matchState', e => apply(e.detail));
@@ -114,4 +158,5 @@
     }, 30000);
 
     render();
+    renderLineupMarks();
 })();

@@ -1,0 +1,75 @@
+@model (string Side, string TeamName, List<LineupRow> Players)
+@{
+    // Starters stand on rows by position: attack at the top, goalkeeper at the bottom.
+    // A starter without a position is placed in midfield, and the formation label is then hidden (it would be a guess).
+    var starters = Model.Players.Where(p => p.IsStarter).ToList();
+    var bench = Model.Players.Where(p => !p.IsStarter).ToList();
+    string RowOf(LineupRow p) => p.PositionCode is "GK" or "DF" or "MF" or "FW" ? p.PositionCode : "MF";
+    var rows = new[] { "FW", "MF", "DF", "GK" }
+        .Select(code => starters.Where(p => RowOf(p) == code).OrderBy(p => p.Number ?? 999).ToList())
+        .Where(r => r.Count > 0).ToList();
+    var allPlaced = starters.Count > 0 && starters.All(p => p.PositionCode is "GK" or "DF" or "MF" or "FW");
+    var outfield = new[] { "DF", "MF", "FW" }.Select(c => starters.Count(p => p.PositionCode == c)).Where(n => n > 0);
+    var formation = allPlaced && starters.Count(p => p.PositionCode == "GK") == 1 ? string.Join("-", outfield) : null;
+
+    static string ShortName(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length > 2 ? $"{parts[0]} {parts[^1]}" : name;
+    }
+}
+
+<div class="lineup-side" data-lineup-side="@Model.Side">
+    @if (starters.Count > 0)
+    {
+        <div class="pitch-head">
+            <span class="fw-semibold">@Model.TeamName</span>
+            @if (formation != null) { <span class="pitch-formation" title="خطة اللعب">@formation</span> }
+        </div>
+        <div class="pitch">
+            <div class="pitch-lines" aria-hidden="true"><span class="pl-half"></span><span class="pl-circle"></span><span class="pl-box pl-top"></span><span class="pl-box pl-bottom"></span></div>
+            @foreach (var row in rows)
+            {
+                <div class="pitch-row">
+                    @foreach (var p in row)
+                    {
+                        <a class="lp" href="/players/@p.PlayerId" data-lineup-player="@p.PlayerId" title="@p.Name@(p.Position != null ? " · " + p.Position : "")">
+                            <span class="lp-avatar @(p.PhotoPath == null ? "lp-shirt" : "")">
+                                @if (p.PhotoPath != null) { <img src="@p.PhotoPath" alt="" loading="lazy" /> }
+                                else { <span class="lp-n">@(p.Number?.ToString() ?? "")</span> }
+                                @if (p.PhotoPath != null && p.Number != null) { <span class="lp-num">@p.Number</span> }
+                                @if (p.IsCaptain) { <span class="lp-captain" title="القائد">C</span> }
+                                <span class="lp-badges" data-badges></span>
+                                <span class="lp-sub" data-sub></span>
+                            </span>
+                            <span class="lp-name">@ShortName(p.Name)</span>
+                        </a>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (bench.Count > 0)
+    {
+        <div class="s3-card mt-3 bench">
+            <div class="s3-card-header"><h2>الاحتياط</h2></div>
+            <ul class="list-group list-group-flush">
+                @foreach (var p in bench)
+                {
+                    <li class="list-group-item bg-transparent bench-row" data-lineup-player="@p.PlayerId">
+                        <span class="lp-avatar lp-avatar-sm @(p.PhotoPath == null ? "lp-shirt" : "")">
+                            @if (p.PhotoPath != null) { <img src="@p.PhotoPath" alt="" loading="lazy" /> } else { <span class="lp-n">@(p.Number?.ToString() ?? "")</span> }
+                        </span>
+                        <a class="flex-grow-1 text-reset stretched-link min-w-0" href="/players/@p.PlayerId">
+                            <span class="d-block fw-semibold text-truncate">@p.Name</span>
+                            <span class="d-block small text-muted">@(p.Number != null ? $"#{p.Number}" : "")@(p.Number != null && p.Position != null ? " · " : "")@p.Position</span>
+                        </a>
+                        <span class="bench-events" data-badges></span>
+                        <span class="lp-sub" data-sub></span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>

@@ -33,6 +33,9 @@ public class LineupRow
     public string Name { get; set; } = string.Empty;
     public int? Number { get; set; }
     public string? Position { get; set; }
+    /// <summary>GK / DF / MF / FW: the row the player stands on in the pitch view.</summary>
+    public string? PositionCode { get; set; }
+    public string? PhotoPath { get; set; }
     public bool IsStarter { get; set; }
     public bool IsCaptain { get; set; }
 }

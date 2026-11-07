@@ -8,7 +8,7 @@
 <div data-match-page="@m.Id" id="matchPage">
     <script type="application/json" id="matchState">@Json.Serialize(Model.Live)</script>
 
-    <section class="s3-card scoreboard mb-3 @(m.IsLive ? "is-live" : "")" data-live-match="@m.Id" data-status="@m.Status" data-period="@m.CurrentPeriod"
+    <section class="s3-card scoreboard match-hero mb-0 @(m.IsLive ? "is-live" : "")" data-live-match="@m.Id" data-status="@m.Status" data-period="@m.CurrentPeriod"
              data-period-start="@m.PeriodStartIso" data-period-duration="@m.PeriodDurationMinutes">
         <div class="scoreboard-meta">
             @if (m.CompetitionSlug != null) { <a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a> } else { <span>مباراة ودية</span> }
@@ -48,9 +48,9 @@
         }
     </section>
 
-    <ul class="nav nav-pills match-tabs mb-3" role="tablist">
-        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-events" type="button" role="tab">الأحداث</button></li>
-        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-lineups" type="button" role="tab">التشكيلة</button></li>
+    <ul class="nav match-tabs match-tabs-line mb-3" role="tablist">
+        <li class="nav-item" role="presentation"><button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-events" type="button" role="tab">التفاصيل</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-lineups" type="button" role="tab">التشكيلات</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-info" type="button" role="tab">معلومات</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-h2h" type="button" role="tab">المواجهات</button></li>
     </ul>
@@ -69,32 +69,28 @@
             }
             else
             {
-                <div class="row g-3">
-                    @foreach (var (name, lineup) in new[] { (m.HomeName, Model.HomeLineup), (m.AwayName, Model.AwayLineup) })
+                var firstSide = Model.HomeLineup.Count > 0 ? "home" : "away";
+                <div class="lineup-switch" role="group" aria-label="اختر الفريق">
+                    @foreach (var (side, name, logo) in new[] { ("home", m.HomeName, m.HomeLogo), ("away", m.AwayName, m.AwayLogo) })
                     {
-                        <div class="col-md-6">
-                            <div class="s3-card h-100">
-                                <div class="s3-card-header"><h2>@name</h2></div>
-                                @foreach (var (title, players) in new[] { ("الأساسيون", lineup.Where(p => p.IsStarter).ToList()), ("الاحتياط", lineup.Where(p => !p.IsStarter).ToList()) })
-                                {
-                                    if (players.Count == 0) { continue; }
-                                    <div class="px-3 pt-2 small text-muted">@title</div>
-                                    <ul class="list-group list-group-flush">
-                                        @foreach (var p in players)
-                                        {
-                                            <li class="list-group-item bg-transparent d-flex align-items-center gap-2">
-                                                <span class="shirt-number">@(p.Number?.ToString() ?? "—")</span>
-                                                <a class="flex-grow-1 text-reset stretched-link" href="/players/@p.PlayerId">@p.Name</a>
-                                                @if (p.IsCaptain) { <span class="badge text-bg-warning">C</span> }
-                                                <span class="small text-muted">@p.Position</span>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
-                            </div>
-                        </div>
+                        <button type="button" class="@(side == firstSide ? "active" : "")" data-lineup-show="@side" aria-pressed="@(side == firstSide ? "true" : "false")">
+                            @Html.EntityLogo(logo, name, 22)<span class="text-truncate">@name</span>
+                        </button>
                     }
                 </div>
+                @foreach (var (side, name, lineup) in new[] { ("home", m.HomeName, Model.HomeLineup), ("away", m.AwayName, Model.AwayLineup) })
+                {
+                    <div class="@(side == firstSide ? "" : "d-none")" data-lineup-panel="@side">
+                        @if (lineup.Count == 0)
+                        {
+                            <div class="s3-card empty-state py-4"><i class="fa-solid fa-people-group d-block"></i><p class="mb-0">لم ينشر @name تشكيلته لهذه المباراة.</p></div>
+                        }
+                        else
+                        {
+                            <partial name="_PitchLineup" model="(side, name, lineup)" />
+                        }
+                    </div>
+                }
             }
         </div>
 
