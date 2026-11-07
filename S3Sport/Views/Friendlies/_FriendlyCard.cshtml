@@ -1,0 +1,48 @@
+@model FriendlyRequestCard
+@{
+    var showPhone = ViewData["ShowPhone"] as bool? ?? false;
+    var venueIcon = Model.VenuePreference switch
+    {
+        FriendlyVenuePreference.Home => "fa-house-flag",
+        FriendlyVenuePreference.Away => "fa-bus",
+        _ => "fa-arrows-left-right"
+    };
+}
+<div class="s3-card p-3 h-100 d-flex flex-column friendly-card">
+    <div class="d-flex align-items-center gap-3 mb-2">
+        @Html.EntityLogo(Model.TeamLogo, Model.TeamName, 48)
+        <div class="min-w-0 flex-grow-1">
+            <a class="fw-bold text-body text-decoration-none d-block text-truncate" href="/teams/@Model.TeamSlug">@Model.TeamName</a>
+            @if (Model.AreaText != null) { <div class="small text-muted text-truncate"><i class="fa-solid fa-location-dot me-1"></i>@Model.AreaText</div> }
+        </div>
+        @if (Model.Status != FriendlyRequestStatus.Open)
+        {
+            <span class="badge @(Model.Status == FriendlyRequestStatus.Matched ? "text-bg-success" : "text-bg-secondary")">@Model.Status.GetDisplayName()</span>
+        }
+    </div>
+    <div class="fw-semibold mb-1">يبحث عن مباراة ودية</div>
+    <ul class="list-unstyled small mb-2 d-grid gap-1">
+        <li><i class="fa-regular fa-calendar me-2 text-muted"></i>@Model.PreferredDate.ToString("dddd yyyy/MM/dd")@(Model.PreferredTime is { } t ? " — " + t.ToString(@"hh\:mm") : "")</li>
+        <li><i class="fa-solid @venueIcon me-2 text-muted"></i>@Model.VenuePreference.GetDisplayName()@(Model.VenueName != null ? " — " + Model.VenueName : "")</li>
+        @if (Model.Notes != null) { <li class="text-body-secondary"><i class="fa-regular fa-comment me-2 text-muted"></i>@Model.Notes</li> }
+    </ul>
+    <div class="mt-auto d-flex flex-wrap gap-2 align-items-center">
+        @if (Model.Status == FriendlyRequestStatus.Open && showPhone)
+        {
+            <a class="btn btn-sm btn-primary" href="@PhoneHelper.TelUrl(Model.ContactPhone)" dir="ltr"><i class="fa-solid fa-phone me-1"></i>@Model.ContactPhone</a>
+            <a class="btn btn-sm btn-success" href="@PhoneHelper.WhatsAppUrl(Model.ContactPhone, $"السلام عليكم، بخصوص طلب {Model.TeamName} لمباراة ودية يوم {Model.PreferredDate:yyyy/MM/dd} على منصة S3Sport")" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp me-1"></i>واتساب</a>
+        }
+        else if (Model.Status == FriendlyRequestStatus.Open)
+        {
+            <a class="btn btn-sm btn-soft" href="/Account/Login?returnUrl=@Uri.EscapeDataString("/Friendlies/Details/" + Model.Id)"><i class="fa-solid fa-lock me-1"></i>سجّل دخولك لرؤية الرقم</a>
+        }
+        else if (Model.MatchId != null)
+        {
+            <a class="btn btn-sm btn-soft" href="/matches/@Model.MatchId"><i class="fa-solid fa-futbol me-1"></i>المباراة</a>
+        }
+        @if (ViewData["OnDetails"] as bool? != true)
+        {
+            <a class="btn btn-sm btn-soft ms-auto" asp-controller="Friendlies" asp-action="Details" asp-route-id="@Model.Id">التفاصيل@(Model.OfferCount > 0 ? $" ({Model.OfferCount} عرض)" : "")</a>
+        }
+    </div>
+</div>

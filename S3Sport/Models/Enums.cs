@@ -136,5 +136,30 @@ public enum NotificationType
     [Display(Name = "بطاقة")] Card = 9,
     [Display(Name = "ركلة جزاء")] Penalty = 10,
     [Display(Name = "تبديل")] Substitution = 11,
-    [Display(Name = "مباراة جديدة")] MatchScheduled = 12
+    [Display(Name = "مباراة جديدة")] MatchScheduled = 12,
+    [Display(Name = "عرض مباراة ودية")] FriendlyOffer = 13,
+    [Display(Name = "رد على عرض مباراة ودية")] FriendlyReply = 14
+}
+
+/// <summary>Where a team that looks for a friendly wants to play.</summary>
+public enum FriendlyVenuePreference
+{
+    [Display(Name = "في ملعبنا")] Home = 0,
+    [Display(Name = "في ملعب الخصم")] Away = 1,
+    [Display(Name = "أي ملعب")] Either = 2
+}
+
+public enum FriendlyRequestStatus
+{
+    [Display(Name = "مفتوح")] Open = 0,
+    [Display(Name = "تم الاتفاق")] Matched = 1,
+    [Display(Name = "مغلق")] Closed = 2
+}
+
+public enum FriendlyOfferStatus
+{
+    [Display(Name = "بانتظار الرد")] Pending = 0,
+    [Display(Name = "مقبول")] Accepted = 1,
+    [Display(Name = "مرفوض")] Declined = 2,
+    [Display(Name = "مسحوب")] Withdrawn = 3
 }

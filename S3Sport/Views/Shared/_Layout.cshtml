@@ -88,6 +88,7 @@
                                 @if (User.IsInRole(AppRoles.TeamManager))
                                 {
                                     <li><a class="dropdown-item" asp-area="" asp-controller="MyTeams" asp-action="Index"><i class="fa-solid fa-people-group me-2"></i>إدارة فريقي</a></li>
+                                    <li><a class="dropdown-item" asp-area="" asp-controller="Friendlies" asp-action="Mine"><i class="fa-solid fa-handshake me-2"></i>طلبات المباريات الودية</a></li>
                                 }
                                 @if (isAdminUser || User.IsInRole(AppRoles.MatchOperator) || User.IsInRole(AppRoles.TournamentManager) || User.IsInRole(AppRoles.TeamManager))
                                 {
@@ -120,7 +121,7 @@
                     <ul class="navbar-nav app-nav gap-xl-1 me-xl-3 mt-2 mt-xl-0">
                         @foreach (var (ctrl, icon, text) in new[]
                         {
-                            ("Home", "fa-house", "الرئيسية"), ("Matches", "fa-futbol", "المباريات"), ("Teams", "fa-shield-halved", "الفرق"),
+                            ("Home", "fa-house", "الرئيسية"), ("Matches", "fa-futbol", "المباريات"), ("Friendlies", "fa-handshake", "مباريات ودية"), ("Teams", "fa-shield-halved", "الفرق"),
                             ("Competitions", "fa-trophy", "البطولات"), ("Standings", "fa-ranking-star", "الترتيب"), ("Players", "fa-person-running", "اللاعبون"),
                             ("News", "fa-regular fa-newspaper", "الأخبار"), ("Favorites", "fa-star", "المفضلة")
                         })

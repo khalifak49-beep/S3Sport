@@ -720,6 +720,125 @@ namespace S3Sport.Data.Migrations
                     b.ToTable("CompetitionTeams");
                 });
 
+            modelBuilder.Entity("S3Sport.Models.FriendlyOffer", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("FriendlyRequestId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("FriendlyRequestId", "TeamId")
+                        .IsUnique();
+
+                    b.ToTable("FriendlyOffers");
+                });
+
+            modelBuilder.Entity("S3Sport.Models.FriendlyRequest", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContactName")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ContactPhone")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int?>("MatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("PreferredDate")
+                        .HasColumnType("date");
+
+                    b.Property<TimeSpan?>("PreferredTime")
+                        .HasColumnType("time");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("VenueId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("VenuePreference")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedByUserId");
+
+                    b.HasIndex("MatchId");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("VenueId");
+
+                    b.HasIndex("Status", "PreferredDate");
+
+                    b.ToTable("FriendlyRequests");
+                });
+
             modelBuilder.Entity("S3Sport.Models.Governorate", b =>
                 {
                     b.Property<int>("Id")
@@ -3549,6 +3668,66 @@ namespace S3Sport.Data.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("S3Sport.Models.FriendlyOffer", b =>
+                {
+                    b.HasOne("S3Sport.Models.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.FriendlyRequest", "FriendlyRequest")
+                        .WithMany("Offers")
+                        .HasForeignKey("FriendlyRequestId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("FriendlyRequest");
+
+                    b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("S3Sport.Models.FriendlyRequest", b =>
+                {
+                    b.HasOne("S3Sport.Models.ApplicationUser", "CreatedByUser")
+                        .WithMany()
+                        .HasForeignKey("CreatedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.Match", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("S3Sport.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.Venue", "Venue")
+                        .WithMany()
+                        .HasForeignKey("VenueId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("CreatedByUser");
+
+                    b.Navigation("Match");
+
+                    b.Navigation("Team");
+
+                    b.Navigation("Venue");
+                });
+
             modelBuilder.Entity("S3Sport.Models.Match", b =>
                 {
                     b.HasOne("S3Sport.Models.Team", "AwayTeam")
@@ -4329,6 +4508,11 @@ namespace S3Sport.Data.Migrations
             modelBuilder.Entity("S3Sport.Models.CompetitionStage", b =>
                 {
                     b.Navigation("Groups");
+                });
+
+            modelBuilder.Entity("S3Sport.Models.FriendlyRequest", b =>
+                {
+                    b.Navigation("Offers");
                 });
 
             modelBuilder.Entity("S3Sport.Models.Governorate", b =>

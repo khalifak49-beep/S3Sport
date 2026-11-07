@@ -1,0 +1,114 @@
+@model FriendlyDetailsViewModel
+@{
+    var r = Model.Request;
+    ViewData["Title"] = $"{r.TeamName} يبحث عن مباراة ودية";
+}
+<div class="mx-auto" style="max-width:860px">
+    <div class="mb-3"><a asp-action="Index" class="small text-muted text-decoration-none"><i class="fa-solid fa-arrow-right me-1"></i>كل الطلبات</a></div>
+
+    <partial name="_FriendlyCard" model="r" view-data='new ViewDataDictionary(ViewData) { ["ShowPhone"] = Model.IsSignedIn && Model.IsOpen, ["OnDetails"] = true }' />
+    @if (r.ContactName != null && Model.IsSignedIn && Model.IsOpen)
+    {
+        <p class="small text-muted mt-2 mb-0"><i class="fa-regular fa-user me-1"></i>المنسق: @r.ContactName</p>
+    }
+    @if (r.Status == FriendlyRequestStatus.Open && !Model.IsOpen)
+    {
+        <div class="alert alert-secondary mt-3 mb-0">انتهى موعد هذا الطلب.</div>
+    }
+
+    @* ---------- the requesting team: offers ---------- *@
+    @if (Model.IsOwner)
+    {
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-2">
+            <h2 class="section-title mb-0"><i class="fa-solid fa-handshake"></i>العروض الواردة</h2>
+            @if (r.Status == FriendlyRequestStatus.Open)
+            {
+                <form asp-action="Close" asp-route-id="@r.Id" method="post" data-confirm="إغلاق الطلب؟ لن يظهر للفرق بعد الآن." class="m-0">
+                    <button class="btn btn-sm btn-soft text-danger" type="submit"><i class="fa-solid fa-xmark me-1"></i>إغلاق الطلب</button>
+                </form>
+            }
+        </div>
+        @if (Model.Offers.Count == 0)
+        {
+            <div class="s3-card empty-state py-4"><p class="mb-0">لا توجد عروض بعد. تصلك إشعارات عند وصول أي عرض، وقد يتصل بك الفريق مباشرة على رقمك.</p></div>
+        }
+        <div class="d-grid gap-2">
+            @foreach (var o in Model.Offers)
+            {
+                <div class="s3-card p-3" data-offer="@o.Id">
+                    <div class="d-flex align-items-center gap-3">
+                        @Html.EntityLogo(o.TeamLogo, o.TeamName, 40)
+                        <div class="min-w-0 flex-grow-1">
+                            <a class="fw-bold text-body text-decoration-none" href="/teams/@o.TeamSlug">@o.TeamName</a>
+                            @if (o.AreaText != null) { <div class="small text-muted">@o.AreaText</div> }
+                        </div>
+                        <span class="badge @(o.Status switch { FriendlyOfferStatus.Accepted => "text-bg-success", FriendlyOfferStatus.Pending => "text-bg-warning", _ => "text-bg-secondary" })">@o.Status.GetDisplayName()</span>
+                    </div>
+                    @if (o.Message != null) { <p class="mb-2 mt-2">@o.Message</p> }
+                    <div class="d-flex flex-wrap gap-2 mt-2">
+                        <a class="btn btn-sm btn-soft" href="@PhoneHelper.TelUrl(o.ContactPhone)" dir="ltr"><i class="fa-solid fa-phone me-1"></i>@o.ContactPhone</a>
+                        <a class="btn btn-sm btn-soft" href="@PhoneHelper.WhatsAppUrl(o.ContactPhone, $"السلام عليكم، بخصوص عرضكم لمباراة ودية مع {r.TeamName} على منصة S3Sport")" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp me-1"></i>واتساب</a>
+                        @if (o.Status == FriendlyOfferStatus.Pending && r.Status == FriendlyRequestStatus.Open)
+                        {
+                            <form asp-action="Accept" asp-route-offerId="@o.Id" method="post" class="m-0 ms-auto" data-confirm="قبول عرض @o.TeamName؟ تُضاف المباراة لجدول الفريقين وتُرفض العروض الأخرى.">
+                                <button class="btn btn-sm btn-primary" type="submit"><i class="fa-solid fa-check me-1"></i>قبول</button>
+                            </form>
+                            <form asp-action="Decline" asp-route-offerId="@o.Id" method="post" class="m-0">
+                                <button class="btn btn-sm btn-soft" type="submit">اعتذار</button>
+                            </form>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
+    @* ---------- other teams: my offer / send an offer ---------- *@
+    @foreach (var o in Model.MyOffers)
+    {
+        <div class="s3-card p-3 mt-3">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span>عرض فريقك <strong>@o.TeamName</strong>:</span>
+                <span class="badge @(o.Status switch { FriendlyOfferStatus.Accepted => "text-bg-success", FriendlyOfferStatus.Pending => "text-bg-warning", _ => "text-bg-secondary" })">@o.Status.GetDisplayName()</span>
+                @if (o.Status == FriendlyOfferStatus.Pending)
+                {
+                    <form asp-action="Withdraw" asp-route-offerId="@o.Id" method="post" class="m-0 ms-auto" data-confirm="سحب العرض؟">
+                        <button class="btn btn-sm btn-soft text-danger" type="submit">سحب العرض</button>
+                    </form>
+                }
+                @if (o.Status == FriendlyOfferStatus.Accepted && r.MatchId != null)
+                {
+                    <a class="btn btn-sm btn-primary ms-auto" href="/matches/@r.MatchId">صفحة المباراة</a>
+                }
+            </div>
+        </div>
+    }
+
+    @if (Model.IsOpen && Model.OfferTeams.Count > 0)
+    {
+        <div class="s3-card mt-3">
+            <div class="s3-card-header"><h2><i class="fa-solid fa-paper-plane me-2"></i>أرسل عرضاً من فريقك</h2></div>
+            <div class="s3-card-body">
+                <form asp-action="Offer" asp-route-id="@r.Id" method="post" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label" for="offerTeam">فريقك</label>
+                        <select class="form-select" id="offerTeam" name="teamId" asp-items="Model.OfferTeams"></select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label" for="offerPhone">رقم التواصل</label>
+                        <input class="form-control" id="offerPhone" name="contactPhone" value="@Model.DefaultPhone" inputmode="tel" dir="ltr" maxlength="30" required />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="offerMessage">رسالة (اختياري)</label>
+                        <input class="form-control" id="offerMessage" name="message" maxlength="500" placeholder="مثال: جاهزين الساعة 5 العصر، ملعبنا مضاء" />
+                    </div>
+                    <div class="col-12"><button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane me-1"></i>إرسال العرض</button></div>
+                </form>
+            </div>
+        </div>
+    }
+    else if (Model.IsOpen && !Model.IsSignedIn)
+    {
+        <p class="small text-muted mt-3">مسؤول فريق؟ <a href="/Account/Login?returnUrl=@Uri.EscapeDataString("/Friendlies/Details/" + r.Id)">سجّل دخولك</a> لإرسال عرض من فريقك.</p>
+    }
+</div>

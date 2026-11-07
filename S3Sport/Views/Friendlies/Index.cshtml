@@ -1,0 +1,54 @@
+@model FriendlyIndexViewModel
+@{
+    ViewData["Title"] = "مباريات ودية";
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="page-title">مباريات ودية</h1>
+        <p class="page-subtitle mb-0">
+            فرق تبحث عن مباراة ودية. تواصل معها بالاتصال أو واتساب، أو أرسل عرضاً من فريقك عبر المنصة.
+            @if (!Model.AllRegions) { <text>منطقتك: <strong class="text-body">@Model.RegionName</strong></text> }
+        </p>
+    </div>
+    <div class="d-flex flex-wrap gap-2 align-items-center">
+        @if (Model.HasRegion)
+        {
+            <div class="status-tabs" role="tablist" aria-label="نطاق العرض">
+                <a asp-action="Index" class="@(!Model.AllRegions ? "active" : "")" role="tab" aria-selected="@(!Model.AllRegions)">منطقتي</a>
+                <a asp-action="Index" asp-route-all="true" class="@(Model.AllRegions ? "active" : "")" role="tab" aria-selected="@Model.AllRegions">كل المناطق</a>
+            </div>
+        }
+        @if (Model.CanPost)
+        {
+            <a class="btn btn-soft" asp-action="Mine"><i class="fa-solid fa-list-check me-1"></i>طلباتي وعروضي</a>
+            <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-bullhorn me-1"></i>فريقي يبحث عن مباراة</a>
+        }
+    </div>
+</div>
+
+@if (Model.Results.TotalCount == 0)
+{
+    <div class="s3-card empty-state py-5">
+        <i class="fa-solid fa-handshake d-block"></i>
+        <p class="mb-2">لا توجد فرق تبحث عن مباراة ودية @(Model.AllRegions ? "حالياً" : "في منطقتك حالياً").</p>
+        @if (Model.CanPost) { <a class="btn btn-primary" asp-action="Create">انشر طلب فريقك</a> }
+        else if (!Model.AllRegions) { <a class="btn btn-soft" asp-action="Index" asp-route-all="true">عرض كل المناطق</a> }
+    </div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @foreach (var r in Model.Results.Items)
+        {
+            <div class="col-12 col-md-6 col-xl-4">
+                <partial name="_FriendlyCard" model="r" view-data='new ViewDataDictionary(ViewData) { ["ShowPhone"] = Model.IsSignedIn }' />
+            </div>
+        }
+    </div>
+    @if (Model.Results.TotalPages > 1) { <div class="s3-card mt-3 pager-standalone"><partial name="_Pager" model="Model.Results" /></div> }
+}
+@if (!Model.CanPost && Model.IsSignedIn)
+{
+    <p class="small text-muted mt-3">نشر الطلبات وإرسال العروض متاح لمسؤولي الفرق المعتمدة. <a asp-controller="TeamApplications" asp-action="Create">سجّل فريقك</a>.</p>
+}

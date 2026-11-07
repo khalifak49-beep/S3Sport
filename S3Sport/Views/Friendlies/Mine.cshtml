@@ -1,0 +1,48 @@
+@model FriendlyMineViewModel
+@{
+    ViewData["Title"] = "طلباتي وعروضي للمباريات الودية";
+}
+<div class="d-flex flex-wrap justify-content-between align-items-end gap-3 mb-4">
+    <div>
+        <h1 class="page-title">طلباتي وعروضي</h1>
+        <p class="page-subtitle mb-0">طلبات فرقك للمباريات الودية، والعروض التي أرسلتها لفرق أخرى.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a class="btn btn-soft" asp-action="Index"><i class="fa-solid fa-handshake me-1"></i>كل الطلبات</a>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-bullhorn me-1"></i>طلب جديد</a>
+    </div>
+</div>
+
+<h2 class="section-title"><i class="fa-solid fa-bullhorn"></i>طلبات فرقي</h2>
+@if (Model.Requests.Count == 0)
+{
+    <div class="s3-card empty-state py-4 mb-4"><p class="mb-0">لم تنشر أي طلب بعد.</p></div>
+}
+else
+{
+    <div class="row g-3 mb-4">
+        @foreach (var r in Model.Requests)
+        {
+            <div class="col-12 col-md-6 col-xl-4"><partial name="_FriendlyCard" model="r" view-data='new ViewDataDictionary(ViewData) { ["ShowPhone"] = false }' /></div>
+        }
+    </div>
+}
+
+<h2 class="section-title"><i class="fa-solid fa-paper-plane"></i>عروض أرسلتها</h2>
+@if (Model.Offers.Count == 0)
+{
+    <div class="s3-card empty-state py-4"><p class="mb-0">لم ترسل أي عرض بعد. تصفّح <a asp-action="Index">الطلبات</a> وأرسل عرضاً من فريقك.</p></div>
+}
+else
+{
+    <div class="d-grid gap-2">
+        @foreach (var (o, r) in Model.Offers)
+        {
+            <a class="s3-card p-3 d-flex flex-wrap align-items-center gap-2 text-body text-decoration-none" asp-action="Details" asp-route-id="@r.Id">
+                @Html.EntityLogo(r.TeamLogo, r.TeamName, 36)
+                <span class="flex-grow-1"><strong>@o.TeamName</strong> ← @r.TeamName — @r.PreferredDate.ToString("yyyy/MM/dd")</span>
+                <span class="badge @(o.Status switch { FriendlyOfferStatus.Accepted => "text-bg-success", FriendlyOfferStatus.Pending => "text-bg-warning", _ => "text-bg-secondary" })">@o.Status.GetDisplayName()</span>
+            </a>
+        }
+    </div>
+}

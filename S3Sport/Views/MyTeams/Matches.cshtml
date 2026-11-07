@@ -11,6 +11,7 @@
         </div>
         <div class="team-hero-actions">
             <a class="btn btn-soft" asp-action="Squad" asp-route-id="@Model.TeamId"><i class="fa-solid fa-people-group me-1"></i>اللاعبون</a>
+            <a class="btn btn-soft" asp-controller="Friendlies" asp-action="Create" asp-route-teamId="@Model.TeamId"><i class="fa-solid fa-bullhorn me-1"></i>ابحث عن خصم</a>
             <a class="btn btn-primary" asp-action="CreateMatch" asp-route-id="@Model.TeamId"><i class="fa-solid fa-plus me-1"></i>مباراة جديدة</a>
         </div>
     </div>

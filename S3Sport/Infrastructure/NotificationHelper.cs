@@ -52,6 +52,16 @@ public static class NotificationHelper
             teamId: teamIds.Count == 1 ? teamIds.First() : null);
     }
 
+    /// <summary>The active managers of a team (the accounts that run it on the platform).</summary>
+    public static Task<List<string>> TeamManagerIdsAsync(ApplicationDbContext db, int teamId) =>
+        db.TeamMembers.AsNoTracking().Where(m => m.TeamId == teamId && m.IsActive && m.Role == TeamMemberRole.Manager)
+            .Select(m => m.UserId).Distinct().ToListAsync();
+
+    /// <summary>Specific users (e.g. the managers of a team), not followers.</summary>
+    public static Task<int> NotifyUsersAsync(ApplicationDbContext db, IHubContext<LiveHub> hub, IEnumerable<string> userIds,
+        NotificationType type, string title, string? message, string url, int? teamId = null) =>
+        SendAsync(db, hub, userIds.Distinct().ToList(), type, title, message, url, teamId: teamId);
+
     private static async Task<int> SendAsync(ApplicationDbContext db, IHubContext<LiveHub> hub, List<string> userIds,
         NotificationType type, string title, string? message, string url, int? matchId = null, int? newsId = null, int? teamId = null)
     {
