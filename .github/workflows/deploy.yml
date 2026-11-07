@@ -86,7 +86,7 @@ jobs:
           sleep 5
 
       - name: Upload the build
-        run: bash .github/sftp.sh "mirror -R --parallel=4 --verbose=1 --exclude-glob App_Data/ --exclude-glob wwwroot/uploads/ publish wwwroot"
+        run: bash .github/sftp.sh "mirror -R --no-perms --parallel=4 --verbose=1 --exclude-glob App_Data/ --exclude-glob wwwroot/uploads/ publish wwwroot"
 
       - name: Bring the site back online
         if: always()
