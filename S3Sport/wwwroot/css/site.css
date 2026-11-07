@@ -730,3 +730,23 @@ body { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-are
     .pitch { min-height: 500px; }
 }
 @media (prefers-reduced-motion: reduce) { .lp-avatar, .lineup-switch button { transition: none; } }
+
+/* ---------- Install the app (bar, home card, how-to window) ---------- */
+.install-bar {
+    position: fixed; z-index: 1040; inset-inline: .75rem; bottom: calc(64px + env(safe-area-inset-bottom) + .6rem);
+    display: flex; align-items: center; gap: .7rem; padding: .7rem .8rem; border-radius: 16px;
+    background: var(--s3-surface); border: 1px solid var(--s3-border); box-shadow: 0 12px 40px rgba(0, 0, 0, .35);
+    animation: install-in .35s cubic-bezier(.2, .8, .2, 1);
+}
+@media (min-width: 992px) { .install-bar { bottom: 1rem; inset-inline: auto 1rem; max-width: 420px; } }
+.install-bar-icon { border-radius: 12px; flex-shrink: 0; }
+.install-bar-close { color: var(--s3-muted); }
+@keyframes install-in { from { transform: translateY(120%); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .install-bar { animation: none; } }
+.install-card { display: flex; align-items: center; gap: .9rem; padding: 1rem; flex-wrap: wrap; border-color: color-mix(in srgb, var(--s3-brand) 45%, var(--s3-border)); }
+.install-card.d-none { display: none !important; }
+.install-card > div { flex: 1 1 0; }
+@media (max-width: 575.98px) { .install-card .btn { flex: 1 0 100%; } }
+.install-steps { padding-inline-start: 1.2rem; margin-bottom: .8rem; }
+.install-steps li { margin-bottom: .55rem; line-height: 1.7; }
+.install-key { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 6px; border-radius: 8px; background: var(--s3-surface-2); border: 1px solid var(--s3-border); color: var(--s3-brand); vertical-align: middle; }

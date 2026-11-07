@@ -166,6 +166,8 @@
     {
         <script src="~/js/push.js" asp-append-version="true"></script>
     }
+    <partial name="_InstallApp" />
+    <script src="~/js/install.js" asp-append-version="true"></script>
     <partial name="_Alerts" />
     @await RenderSectionAsync("Scripts", required: false)
 </body>

@@ -1,0 +1,55 @@
+@* "Install the app" bar (phones, first visits) and the how-to window for Android and iPhone. Driven by install.js;
+   everything stays hidden when the site is already running as the installed app. *@
+<div class="install-bar d-none" data-install-bar role="dialog" aria-label="تثبيت التطبيق">
+    <img src="/icons/icon-192.png" alt="" width="44" height="44" class="install-bar-icon" />
+    <div class="flex-grow-1 min-w-0">
+        <div class="fw-bold">ثبّت تطبيق S3Sport</div>
+        <div class="small text-muted text-truncate">النتائج والإشعارات على جوالك مثل أي تطبيق</div>
+    </div>
+    <button type="button" class="btn btn-primary btn-sm" data-install-open>تثبيت</button>
+    <button type="button" class="btn btn-icon btn-sm install-bar-close" data-install-dismiss aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+</div>
+
+<div class="modal fade" id="installModal" tabindex="-1" aria-labelledby="installModalTitle" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content s3-card">
+            <div class="modal-header border-0 pb-0">
+                <h2 class="modal-title h5" id="installModalTitle"><i class="fa-solid fa-mobile-screen-button me-2 text-success"></i>تثبيت التطبيق على جوالك</h2>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+            </div>
+            <div class="modal-body">
+                <div class="lineup-switch mb-3" role="group" aria-label="نوع الجوال">
+                    <button type="button" data-install-tab="android"><i class="fa-brands fa-android"></i><span>أندرويد</span></button>
+                    <button type="button" data-install-tab="ios"><i class="fa-brands fa-apple"></i><span>آيفون</span></button>
+                </div>
+
+                <div class="alert alert-warning small d-none" data-install-inapp>
+                    <i class="fa-solid fa-triangle-exclamation me-1"></i>
+                    أنت فاتح الرابط من داخل تطبيق آخر (مثل إنستغرام أو سناب). افتحه في المتصفح أولاً:
+                    اضغط <i class="fa-solid fa-ellipsis"></i> أو <i class="fa-solid fa-ellipsis-vertical"></i> ثم «فتح في المتصفح».
+                </div>
+
+                <div data-install-panel="android">
+                    <button type="button" class="btn btn-primary w-100 mb-3 d-none" data-install-native><i class="fa-solid fa-download me-1"></i>ثبّت الآن</button>
+                    <ol class="install-steps">
+                        <li>افتح الموقع في متصفح <b>Chrome</b>.</li>
+                        <li>اضغط زر القائمة <span class="install-key"><i class="fa-solid fa-ellipsis-vertical"></i></span> أعلى الشاشة.</li>
+                        <li>اختر <b>«تثبيت التطبيق»</b> أو <b>«إضافة إلى الشاشة الرئيسية»</b>.</li>
+                        <li>اضغط <b>«تثبيت»</b>. تظهر أيقونة S3Sport مع تطبيقاتك.</li>
+                    </ol>
+                    <p class="small text-muted mb-0">في متصفح سامسونج: القائمة <i class="fa-solid fa-bars"></i> أسفل الشاشة ثم «إضافة صفحة إلى» ثم «الشاشة الرئيسية».</p>
+                </div>
+
+                <div class="d-none" data-install-panel="ios">
+                    <ol class="install-steps">
+                        <li>افتح الموقع في متصفح <b>Safari</b>.</li>
+                        <li>اضغط زر المشاركة <span class="install-key"><i class="fa-solid fa-arrow-up-from-bracket"></i></span> أسفل الشاشة (أو أعلاها في الآيباد).</li>
+                        <li>انزل في القائمة واختر <b>«إضافة إلى الشاشة الرئيسية»</b> <span class="install-key"><i class="fa-regular fa-square-plus"></i></span>.</li>
+                        <li>اضغط <b>«إضافة»</b> أعلى الشاشة. تظهر أيقونة S3Sport مع تطبيقاتك.</li>
+                    </ol>
+                    <p class="small text-muted mb-0">لتصلك إشعارات الأهداف على الآيفون: افتح التطبيق من الأيقونة ثم فعّل الإشعارات من صفحة الإشعارات (يحتاج iOS 16.4 أو أحدث).</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

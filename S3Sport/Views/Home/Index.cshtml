@@ -29,6 +29,15 @@
 
 @if (scopeNote != null) { <p class="small text-muted mb-3"><i class="fa-solid fa-circle-info me-1"></i>@scopeNote</p> }
 
+<section class="s3-card install-card mb-4 d-none" data-install-card>
+    <img src="/icons/icon-192.png" alt="" width="52" height="52" class="install-bar-icon" />
+    <div class="flex-grow-1 min-w-0">
+        <h2 class="h6 fw-bold mb-1">ثبّت S3Sport على جوالك</h2>
+        <p class="small text-muted mb-0">يفتح مثل التطبيق، وتوصلك إشعارات الأهداف والمباريات. للأندرويد والآيفون.</p>
+    </div>
+    <button type="button" class="btn btn-primary" data-install-open><i class="fa-solid fa-download me-1"></i>طريقة التثبيت</button>
+</section>
+
 @if (Model.LiveMatches.Count > 0)
 {
     <h2 class="section-title"><span class="live-dot"></span>مباشر الآن</h2>
