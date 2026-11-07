@@ -1343,6 +1343,51 @@ namespace S3Sport.Data.Migrations
                     b.ToTable("MatchOfficials");
                 });
 
+            modelBuilder.Entity("S3Sport.Models.MatchPhoto", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Caption")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("MatchId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Path")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("TeamId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UploadedByUserId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TeamId");
+
+                    b.HasIndex("UploadedByUserId");
+
+                    b.HasIndex("MatchId", "TeamId");
+
+                    b.ToTable("MatchPhotos");
+                });
+
             modelBuilder.Entity("S3Sport.Models.MatchReport", b =>
                 {
                     b.Property<int>("Id")
@@ -1914,6 +1959,87 @@ namespace S3Sport.Data.Migrations
                         {
                             t.HasCheckConstraint("CK_Seasons_Dates", "[EndDate] > [StartDate]");
                         });
+                });
+
+            modelBuilder.Entity("S3Sport.Models.Sponsor", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Clicks")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CompetitionId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateOnly?>("EndsOn")
+                        .HasColumnType("date");
+
+                    b.Property<int?>("GovernorateId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LogoPath")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<string>("NameAr")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("Phone")
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<int>("Scope")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateOnly?>("StartsOn")
+                        .HasColumnType("date");
+
+                    b.Property<string>("Tagline")
+                        .HasMaxLength(140)
+                        .HasColumnType("nvarchar(140)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Views")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WebsiteUrl")
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int?>("WilayatId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompetitionId");
+
+                    b.HasIndex("GovernorateId");
+
+                    b.HasIndex("WilayatId");
+
+                    b.HasIndex("IsActive", "Scope");
+
+                    b.ToTable("Sponsors");
                 });
 
             modelBuilder.Entity("S3Sport.Models.Sport", b =>
@@ -3906,6 +4032,32 @@ namespace S3Sport.Data.Migrations
                     b.Navigation("Match");
                 });
 
+            modelBuilder.Entity("S3Sport.Models.MatchPhoto", b =>
+                {
+                    b.HasOne("S3Sport.Models.Match", "Match")
+                        .WithMany()
+                        .HasForeignKey("MatchId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("S3Sport.Models.ApplicationUser", "UploadedByUser")
+                        .WithMany()
+                        .HasForeignKey("UploadedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Match");
+
+                    b.Navigation("Team");
+
+                    b.Navigation("UploadedByUser");
+                });
+
             modelBuilder.Entity("S3Sport.Models.MatchReport", b =>
                 {
                     b.HasOne("S3Sport.Models.Player", "BestPlayer")
@@ -4132,6 +4284,30 @@ namespace S3Sport.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("S3Sport.Models.Sponsor", b =>
+                {
+                    b.HasOne("S3Sport.Models.Competition", "Competition")
+                        .WithMany()
+                        .HasForeignKey("CompetitionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("S3Sport.Models.Governorate", "Governorate")
+                        .WithMany()
+                        .HasForeignKey("GovernorateId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("S3Sport.Models.Wilayat", "Wilayat")
+                        .WithMany()
+                        .HasForeignKey("WilayatId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Competition");
+
+                    b.Navigation("Governorate");
+
+                    b.Navigation("Wilayat");
                 });
 
             modelBuilder.Entity("S3Sport.Models.SportPosition", b =>

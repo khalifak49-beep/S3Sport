@@ -1,0 +1,23 @@
+@model List<SponsorCard>
+<section class="sponsor-strip mb-4" aria-label="@ViewData["SponsorTitle"]">
+    <div class="sponsor-label"><i class="fa-solid fa-handshake-angle me-1"></i>@ViewData["SponsorTitle"]</div>
+    <div class="sponsor-row">
+        @foreach (var s in Model)
+        {
+            if (s.HasLink)
+            {
+                <a class="sponsor-tile" href="/sponsors/@s.Id/go" target="_blank" rel="sponsored noopener" data-sponsor="@s.Id">
+                    <img src="@s.Logo" alt="" loading="lazy" />
+                    <span class="sponsor-text"><span class="sponsor-name">@s.Name</span>@if (s.Tagline != null) { <span class="sponsor-tagline">@s.Tagline</span> }</span>
+                </a>
+            }
+            else
+            {
+                <div class="sponsor-tile" data-sponsor="@s.Id">
+                    <img src="@s.Logo" alt="" loading="lazy" />
+                    <span class="sponsor-text"><span class="sponsor-name">@s.Name</span>@if (s.Tagline != null) { <span class="sponsor-tagline">@s.Tagline</span> }</span>
+                </div>
+            }
+        }
+    </div>
+</section>

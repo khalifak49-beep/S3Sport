@@ -57,6 +57,10 @@
             {
                 <div class="nav-section">المحتوى</div>
                 <a class="nav-link @Active("News")" asp-area="Admin" asp-controller="News" asp-action="Index"><i class="fa-regular fa-newspaper"></i>الأخبار والوسائط</a>
+                @if (isAdmin)
+                {
+                    <a class="nav-link @Active("Sponsors")" asp-area="Admin" asp-controller="Sponsors" asp-action="Index"><i class="fa-solid fa-handshake-angle"></i>الرعاة</a>
+                }
             }
             @if (isAdmin)
             {

@@ -53,6 +53,7 @@
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-lineups" type="button" role="tab">التشكيلات</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-info" type="button" role="tab">معلومات</button></li>
         <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-h2h" type="button" role="tab">المواجهات</button></li>
+        <li class="nav-item" role="presentation"><button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-photos" type="button" role="tab">الصور@(Model.Photos.Count > 0 ? $" ({Model.Photos.Count})" : "")</button></li>
     </ul>
 
     <div class="tab-content">
@@ -133,9 +134,79 @@
                 </div>
             }
         </div>
+
+        <div class="tab-pane fade" id="tab-photos" role="tabpanel">
+            @if (Model.PhotoUploadTeams.Count > 0)
+            {
+                <form class="s3-card s3-card-body mb-3 photo-upload" data-photo-upload="@m.Id" novalidate>
+                    @Html.AntiForgeryToken()
+                    <div class="fw-semibold mb-2"><i class="fa-solid fa-camera me-1 text-success"></i>أضف صور المباراة</div>
+                    <div class="row g-2 align-items-end">
+                        @if (Model.PhotoUploadTeams.Count > 1)
+                        {
+                            <div class="col-sm-4">
+                                <label class="form-label small">باسم فريق</label>
+                                <select name="teamId" class="form-select">
+                                    @foreach (var t in Model.PhotoUploadTeams) { <option value="@t.Id">@t.Name</option> }
+                                </select>
+                            </div>
+                        }
+                        else
+                        {
+                            <input type="hidden" name="teamId" value="@Model.PhotoUploadTeams[0].Id" />
+                        }
+                        <div class="col-sm"><label class="form-label small">وصف قصير (اختياري)</label><input name="caption" class="form-control" maxlength="150" placeholder="مثال: لحظة الهدف الأول" /></div>
+                        <div class="col-sm-auto">
+                            <label class="btn btn-primary w-100 mb-0"><i class="fa-solid fa-images me-1"></i>اختر الصور<input type="file" accept="image/*" multiple class="d-none" data-photo-input /></label>
+                        </div>
+                    </div>
+                    <div class="small text-muted mt-2" data-photo-status>حتى @S3Sport.Controllers.MatchPhotosController.MaxPerTeam صورة لكل فريق في المباراة. تُصغَّر الصور تلقائياً قبل الرفع.</div>
+                </form>
+            }
+            @if (Model.Photos.Count == 0)
+            {
+                <div class="s3-card empty-state py-4"><i class="fa-regular fa-images d-block"></i><p class="mb-0">لا توجد صور لهذه المباراة بعد.</p></div>
+            }
+            else
+            {
+                var manageable = Model.PhotoUploadTeams.Select(t => t.Id).ToHashSet();
+                <div class="photo-grid">
+                    @for (var i = 0; i < Model.Photos.Count; i++)
+                    {
+                        var p = Model.Photos[i];
+                        <button type="button" class="photo-thumb" data-photo-index="@i" data-photo-id="@p.Id" data-src="@p.Path"
+                                data-caption="@p.Caption" data-team="@p.TeamName" data-can-delete="@((Model.CanModeratePhotos || manageable.Contains(p.TeamId)) ? "1" : "0")"
+                                aria-label="عرض الصورة @(i + 1)">
+                            <img src="@p.Path" alt="@(p.Caption ?? "صورة من المباراة")" loading="lazy" />
+                        </button>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mt-4"><vc:sponsors match-id="m.Id" /></div>
+
+    <div class="modal fade photo-viewer" id="photoViewer" tabindex="-1" aria-label="صور المباراة" aria-hidden="true">
+        <div class="modal-dialog modal-fullscreen">
+            <div class="modal-content">
+                <div class="photo-viewer-bar">
+                    <button type="button" class="btn btn-icon" data-bs-dismiss="modal" aria-label="إغلاق"><i class="fa-solid fa-xmark"></i></button>
+                    <span class="small" data-viewer-count></span>
+                    <button type="button" class="btn btn-icon text-danger d-none" data-viewer-delete aria-label="حذف الصورة"><i class="fa-regular fa-trash-can"></i></button>
+                </div>
+                <div class="photo-viewer-stage">
+                    <button type="button" class="photo-nav photo-next" data-viewer-step="1" aria-label="التالية"><i class="fa-solid fa-chevron-left"></i></button>
+                    <img alt="" data-viewer-img />
+                    <button type="button" class="photo-nav photo-prev" data-viewer-step="-1" aria-label="السابقة"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="photo-viewer-caption"><div data-viewer-caption></div><div class="small opacity-75" data-viewer-team></div></div>
+            </div>
+        </div>
     </div>
 </div>
 
 @section Scripts {
     <script src="~/js/match.js" asp-append-version="true"></script>
+    <script src="~/js/match-photos.js" asp-append-version="true"></script>
 }

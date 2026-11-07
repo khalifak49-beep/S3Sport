@@ -1,0 +1,53 @@
+@model List<SponsorRow>
+@{
+    ViewData["Title"] = "الرعاة";
+}
+<div class="s3-card">
+    <div class="s3-card-header">
+        <div>
+            <h2 class="mb-1">الرعاة</h2>
+            <div class="small text-muted">يظهر الراعي في الصفحة الرئيسية لمنطقته، وفي صفحة البطولة ومبارياتها. المشاهدات والضغطات تُحسب تلقائياً لتعرضها على الراعي.</div>
+        </div>
+        <a class="btn btn-primary" asp-action="Create"><i class="fa-solid fa-plus me-1"></i>إضافة راعٍ</a>
+    </div>
+    @if (Model.Count == 0)
+    {
+        <div class="empty-state"><i class="fa-solid fa-handshake-angle d-block"></i><p class="mb-0">لا يوجد رعاة بعد.</p></div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-stack table-hover table-nowrap">
+                <thead><tr><th>الراعي</th><th>مكان الظهور</th><th>المدة</th><th>الحالة</th><th>المشاهدات</th><th>الضغطات</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td><span class="d-inline-flex align-items-center gap-2"><img src="@s.LogoPath" alt="" class="sponsor-admin-logo" /><span class="fw-semibold">@s.NameAr</span></span></td>
+                            <td>@s.Placement</td>
+                            <td>@(s.StartsOn == null && s.EndsOn == null ? "مفتوحة" : $"{s.StartsOn?.ToString("yyyy/MM/dd") ?? "…"} ← {s.EndsOn?.ToString("yyyy/MM/dd") ?? "…"}")</td>
+                            <td>
+                                @if (s.IsRunning) { <span class="badge text-bg-success">يظهر الآن</span> }
+                                else if (s.IsActive) { <span class="badge text-bg-secondary">خارج المدة</span> }
+                                else { <span class="badge text-bg-warning">موقوف</span> }
+                            </td>
+                            <td>@s.Views.ToString("N0")</td>
+                            <td>@s.Clicks.ToString("N0") @if (s.Views > 0) { <span class="small text-muted">(@((100.0 * s.Clicks / s.Views).ToString("0.#"))%)</span> }</td>
+                            <td>
+                                <div class="table-actions">
+                                    <a class="btn btn-soft btn-sm" asp-action="Edit" asp-route-id="@s.Id" title="تعديل"><i class="fa-solid fa-pen"></i></a>
+                                    <form asp-action="Toggle" asp-route-id="@s.Id" method="post">
+                                        <button class="btn btn-soft btn-sm" type="submit" title="@(s.IsActive ? "إيقاف" : "تفعيل")"><i class="fa-solid @(s.IsActive ? "fa-pause" : "fa-play")"></i></button>
+                                    </form>
+                                    <form asp-action="Delete" asp-route-id="@s.Id" method="post" data-confirm="حذف الراعي؟" data-confirm-text="@s.NameAr" data-confirm-danger>
+                                        <button class="btn btn-soft btn-sm text-danger" type="submit" title="حذف"><i class="fa-regular fa-trash-can"></i></button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>

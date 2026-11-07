@@ -58,6 +58,10 @@ public class MatchDetailsViewModel
     public FollowButtonViewModel Follow { get; set; } = new();
     public bool CanOperate { get; set; }
     public string? Notes { get; set; }
+    public List<MatchPhotoItem> Photos { get; set; } = [];
+    /// <summary>The match's teams the viewer manages: they may upload photos for them.</summary>
+    public List<(int Id, string Name)> PhotoUploadTeams { get; set; } = [];
+    public bool CanModeratePhotos { get; set; }
 }
 
 // ===================== Competitions =====================
@@ -245,4 +249,13 @@ public class FavoriteItem
     public string? Subtitle { get; set; }
     public string Url { get; set; } = string.Empty;
     public FollowButtonViewModel Follow { get; set; } = new();
+}
+
+public class MatchPhotoItem
+{
+    public int Id { get; set; }
+    public string Path { get; set; } = string.Empty;
+    public string? Caption { get; set; }
+    public int TeamId { get; set; }
+    public string TeamName { get; set; } = string.Empty;
 }

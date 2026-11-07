@@ -1,0 +1,70 @@
+@model SponsorFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "إضافة راعٍ" : $"تعديل: {Model.NameAr}";
+}
+<div class="s3-card mx-auto" style="max-width:820px">
+    <div class="s3-card-header"><h2>@ViewData["Title"]</h2></div>
+    <div class="s3-card-body">
+        <form asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+            <input type="hidden" asp-for="Id" />
+            <div class="row g-3">
+                <div class="col-md-6"><label asp-for="NameAr" class="form-label"></label><input asp-for="NameAr" class="form-control" placeholder="مثال: مطعم الخوض" /><span asp-validation-for="NameAr" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="Tagline" class="form-label"></label><input asp-for="Tagline" class="form-control" placeholder="مثال: خصم 10% لمتابعي المنصة" /></div>
+                <div class="col-12">
+                    <label asp-for="Logo" class="form-label"></label>
+                    <div class="d-flex align-items-center gap-3">
+                        <img id="logoPreview" src="@Model.LogoPath" alt="" class="sponsor-admin-logo sponsor-admin-logo-lg @(Model.LogoPath == null ? "d-none" : "")" />
+                        <input asp-for="Logo" type="file" class="form-control" accept="@FileUploadHelper.AllowedImageExtensions" data-preview="#logoPreview" />
+                    </div>
+                    <div class="form-text">مربع أو أفقي، بخلفية واضحة. حتى 2 ميجابايت.</div>
+                    <span asp-validation-for="Logo" class="field-validation-error"></span>
+                </div>
+                <div class="col-md-6"><label asp-for="WebsiteUrl" class="form-label"></label><input asp-for="WebsiteUrl" class="form-control ltr" placeholder="instagram.com/..." /><span asp-validation-for="WebsiteUrl" class="field-validation-error"></span></div>
+                <div class="col-md-6"><label asp-for="Phone" class="form-label"></label><input asp-for="Phone" class="form-control ltr" inputmode="tel" placeholder="9xxxxxxx" /><span asp-validation-for="Phone" class="field-validation-error"></span><div class="form-text">إذا ما فيه رابط، الضغط على الراعي يفتح واتساب على هذا الرقم.</div></div>
+
+                <div class="col-md-6">
+                    <label asp-for="Scope" class="form-label"></label>
+                    <select asp-for="Scope" asp-items="Html.GetEnumSelectList<SponsorScope>()" class="form-select" data-sponsor-scope></select>
+                </div>
+                <div class="col-md-6" data-scope-field="Governorate Wilayat">
+                    <label asp-for="GovernorateId" class="form-label"></label>
+                    <select asp-for="GovernorateId" asp-items="Model.Governorates" class="form-select"><option value="">—</option></select>
+                    <span asp-validation-for="GovernorateId" class="field-validation-error"></span>
+                </div>
+                <div class="col-md-6" data-scope-field="Wilayat">
+                    <label asp-for="WilayatId" class="form-label"></label>
+                    <select asp-for="WilayatId" class="form-select" data-cascade-parent="#GovernorateId" data-cascade-url="/Region/Wilayats?governorateId=" data-placeholder="—" data-selected="@Model.WilayatId"></select>
+                    <span asp-validation-for="WilayatId" class="field-validation-error"></span>
+                </div>
+                <div class="col-md-6" data-scope-field="Competition">
+                    <label asp-for="CompetitionId" class="form-label"></label>
+                    <select asp-for="CompetitionId" asp-items="Model.Competitions" class="form-select"><option value="">—</option></select>
+                    <span asp-validation-for="CompetitionId" class="field-validation-error"></span>
+                </div>
+
+                <div class="col-md-4"><label asp-for="StartsOn" class="form-label"></label><input asp-for="StartsOn" type="date" class="form-control" /></div>
+                <div class="col-md-4"><label asp-for="EndsOn" class="form-label"></label><input asp-for="EndsOn" type="date" class="form-control" /><span asp-validation-for="EndsOn" class="field-validation-error"></span></div>
+                <div class="col-md-4"><label asp-for="SortOrder" class="form-label"></label><input asp-for="SortOrder" type="number" min="0" class="form-control" /></div>
+                <div class="col-12"><div class="form-check form-switch"><input asp-for="IsActive" class="form-check-input" /><label asp-for="IsActive" class="form-check-label"></label></div></div>
+            </div>
+            <div class="d-flex gap-2 mt-4">
+                <button class="btn btn-primary" type="submit">حفظ</button>
+                <a class="btn btn-soft" asp-action="Index">رجوع</a>
+            </div>
+        </form>
+    </div>
+</div>
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (() => {
+            const scope = document.querySelector('[data-sponsor-scope]');
+            const names = ['Country', 'Governorate', 'Wilayat', 'Competition'];
+            const sync = () => {
+                const current = names[Number(scope.value)] || 'Country';
+                document.querySelectorAll('[data-scope-field]').forEach(f => f.classList.toggle('d-none', !f.dataset.scopeField.split(' ').includes(current)));
+            };
+            scope.addEventListener('change', sync); sync();
+        })();
+    </script>
+}

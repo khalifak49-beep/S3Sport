@@ -163,3 +163,11 @@ public enum FriendlyOfferStatus
     [Display(Name = "مرفوض")] Declined = 2,
     [Display(Name = "مسحوب")] Withdrawn = 3
 }
+
+public enum SponsorScope
+{
+    [Display(Name = "كل السلطنة")] Country = 0,
+    [Display(Name = "محافظة")] Governorate = 1,
+    [Display(Name = "ولاية")] Wilayat = 2,
+    [Display(Name = "بطولة")] Competition = 3
+}

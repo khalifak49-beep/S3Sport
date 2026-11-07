@@ -107,8 +107,14 @@ public class MatchesController(ApplicationDbContext db) : Controller
             HeadToHead = h2hRows,
             HeadToHeadSummary = (Won(extra.HomeTeamId), draws, Won(extra.AwayTeamId)),
             Follow = await FollowHelper.BuildAsync(db, User.GetUserId(), FollowTargetType.Match, id, compact: false),
-            CanOperate = User.Identity?.IsAuthenticated == true && await db.CanOperateMatchAsync(User, id)
+            CanOperate = User.Identity?.IsAuthenticated == true && await db.CanOperateMatchAsync(User, id),
+            Photos = await db.MatchPhotos.AsNoTracking().Where(p => p.MatchId == id).OrderByDescending(p => p.Id)
+                .Select(p => new MatchPhotoItem { Id = p.Id, Path = p.Path, Caption = p.Caption, TeamId = p.TeamId, TeamName = p.Team.NameAr })
+                .ToListAsync(),
+            CanModeratePhotos = User.IsAdmin()
         };
+        var uploadTeams = await MatchPhotosController.UploadTeamIdsAsync(db, User, extra.HomeTeamId, extra.AwayTeamId);
+        model.PhotoUploadTeams = uploadTeams.Select(t => (t, t == extra.HomeTeamId ? info.HomeName : info.AwayName)).ToList();
         return View(model);
     }
 

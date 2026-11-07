@@ -50,6 +50,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
     public DbSet<MatchReport> MatchReports => Set<MatchReport>();
     public DbSet<FriendlyRequest> FriendlyRequests => Set<FriendlyRequest>();
     public DbSet<FriendlyOffer> FriendlyOffers => Set<FriendlyOffer>();
+    public DbSet<Sponsor> Sponsors => Set<Sponsor>();
+    public DbSet<MatchPhoto> MatchPhotos => Set<MatchPhoto>();
 
     // Statistics
     public DbSet<CompetitionStanding> CompetitionStandings => Set<CompetitionStanding>();
