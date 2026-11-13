@@ -127,11 +127,11 @@ public class MatchesController(ApplicationDbContext db) : Controller
     }
 
     public static List<CompetitionMatchGroup> GroupByCompetition(IEnumerable<MatchRow> rows) =>
-        rows.GroupBy(r => new { r.CompetitionName, r.CompetitionSlug, r.CompetitionLogo })
-            .OrderBy(g => g.Key.CompetitionName == null).ThenBy(g => g.Key.CompetitionName)
+        rows.GroupBy(r => new { Name = r.EventName, r.CompetitionSlug, r.CompetitionLogo })
+            .OrderBy(g => g.Key.Name == null).ThenBy(g => g.Key.Name)
             .Select(g => new CompetitionMatchGroup
             {
-                Name = g.Key.CompetitionName ?? "مباريات ودية",
+                Name = g.Key.Name ?? "مباريات ودية",
                 Slug = g.Key.CompetitionSlug,
                 Logo = g.Key.CompetitionLogo,
                 Matches = g.OrderByDescending(m => m.IsLive).ThenBy(m => m.KickoffAt).ToList()

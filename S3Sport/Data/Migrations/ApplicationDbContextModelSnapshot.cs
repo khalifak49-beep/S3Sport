@@ -1076,6 +1076,10 @@ namespace S3Sport.Data.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
+                    b.Property<string>("TournamentName")
+                        .HasMaxLength(150)
+                        .HasColumnType("nvarchar(150)");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 

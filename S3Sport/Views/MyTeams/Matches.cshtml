@@ -42,7 +42,7 @@
                          data-period-start="@m.PeriodStartIso" data-period-duration="@m.PeriodDurationMinutes">
                         <a class="text-reset d-block flex-grow-1" href="/matches/@m.Id">
                             <div class="small text-muted mb-2 d-flex justify-content-between gap-2">
-                                <span class="text-truncate">@(m.CompetitionName ?? "مباراة ودية") @(m.RoundName != null ? "· " + m.RoundName : "")</span>
+                                <span class="text-truncate">@(m.EventName ?? "مباراة ودية") @(m.RoundName != null ? "· " + m.RoundName : "")</span>
                                 <span class="text-nowrap">@m.KickoffAt.ToMuscatString("ddd MM/dd HH:mm")</span>
                             </div>
                             <div class="d-flex align-items-center gap-2">

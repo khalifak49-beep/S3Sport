@@ -55,6 +55,36 @@ check "hidden Id is the match" "$M" "$(hidden Id)"
 TOK=$(token tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")
 check "save edit" 302 "$(post tf_m.jar /MyTeams/SaveMatch "$TOK" -d "Id=$(hidden Id)" -d "TeamId=$(hidden TeamId)" -d OpponentTeamId=$TB -d IsHome=false -d KickoffLocal=2026-12-21T18:00 -d Status=Scheduled --data-urlencode "RowVersion=$(hidden RowVersion)")"
 check "the right match was edited" "$TB/$TA" "$(sql "SELECT CONCAT(HomeTeamId,'/',AwayTeamId) FROM Matches WHERE Id=$M")"
+check "match type is optional: saved as a friendly" NULL "$(sql "SELECT ISNULL(TournamentName,'NULL') FROM Matches WHERE Id=$M")"
+
+echo "== Match type: friendly or tournament (optional; a tournament needs its name)"
+TNAME="بطولة الولاية $R"
+savematch() { # IsTournament [TournamentName]
+  get tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M" > /dev/null
+  local rv; rv=$(hidden RowVersion); local tok; tok=$(token tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")
+  post tf_m.jar /MyTeams/SaveMatch "$tok" -d "Id=$M" -d "TeamId=$TA" -d OpponentTeamId=$TB -d IsHome=true -d KickoffLocal=2026-12-21T18:00 \
+       -d Status=Scheduled --data-urlencode "RowVersion=$rv" -d "IsTournament=$1" -d "TournamentName=$(urlenc "${2:-}")"
+}
+get tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M" > /dev/null
+check "edit form: «ودية» selected by default" 1 "$(grep -c 'id="kind-friendly" value="false" checked' $T/body.html)"
+check "tournament without a name is refused (form shown again)" 200 "$(savematch true)"
+check "…with the reason" 1 "$(grep -c 'اكتب اسم البطولة' $T/body.html)"
+check "…and nothing saved" NULL "$(sql "SELECT ISNULL(TournamentName,'NULL') FROM Matches WHERE Id=$M")"
+check "tournament with its name saved" 302 "$(savematch true "  $TNAME  ")"
+check "…name stored trimmed" 1 "$(sql "SELECT COUNT(*) FROM Matches WHERE Id=$M AND TournamentName=N'$TNAME'")"
+get tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M" > /dev/null
+check "edit form: «بطولة» selected and name filled" "1/1" "$(grep -c 'id="kind-tournament" value="true" checked' $T/body.html)/$(grep -c "value=\"$TNAME\"" $T/body.html)"
+get tf_m.jar "/matches/$M" > /dev/null
+check "public match page shows the tournament (not «مباراة ودية»)" "1/0" "$(grep -c "<span>$TNAME</span>" $T/body.html)/$(grep -c '<span>مباراة ودية</span>' $T/body.html)"
+check "…and in the info tab" 1 "$(grep -c "بطولة: $TNAME" $T/body.html)"
+get tf_m.jar "/MyTeams/Matches/$TA" > /dev/null
+check "team's match list shows the tournament" 1 "$(grep -c "$TNAME" $T/body.html)"
+get tf_m.jar "/matches?date=2026-12-21&all=true" > /dev/null
+check "match centre groups it under the tournament" 1 "$(grep -c "$TNAME" $T/body.html)"
+check "back to friendly drops the name" 302 "$(savematch false "$TNAME")"
+check "…name cleared" NULL "$(sql "SELECT ISNULL(TournamentName,'NULL') FROM Matches WHERE Id=$M")"
+get tf_m.jar "/matches/$M" > /dev/null
+check "…page shows «مباراة ودية» again" 1 "$(grep -c '<span>مباراة ودية</span>' $T/body.html)"
 
 echo
 echo "RESULT: $PASS passed, $FAIL failed"

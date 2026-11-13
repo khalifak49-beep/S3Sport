@@ -11,7 +11,7 @@
     <section class="s3-card scoreboard match-hero mb-0 @(m.IsLive ? "is-live" : "")" data-live-match="@m.Id" data-status="@m.Status" data-period="@m.CurrentPeriod"
              data-period-start="@m.PeriodStartIso" data-period-duration="@m.PeriodDurationMinutes">
         <div class="scoreboard-meta">
-            @if (m.CompetitionSlug != null) { <a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a> } else { <span>مباراة ودية</span> }
+            @if (m.CompetitionSlug != null) { <a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a> } else { <span>@(m.TournamentName ?? "مباراة ودية")</span> }
             @if (m.RoundName != null) { <span>· @m.RoundName</span> }
             @if (m.GroupName != null) { <span>· المجموعة @m.GroupName</span> }
         </div>
@@ -101,6 +101,7 @@
                     <dl class="info-list">
                         <dt>الموعد</dt><dd>@m.KickoffAt.ToMuscatString("dddd yyyy/MM/dd — HH:mm")</dd>
                         @if (m.CompetitionName != null) { <dt>البطولة</dt><dd><a href="/competitions/@m.CompetitionSlug">@m.CompetitionName</a>@(Model.StageName != null ? " · " + Model.StageName : "")</dd> }
+                        else { <dt>النوع</dt><dd>@(m.TournamentName != null ? "بطولة: " + m.TournamentName : "مباراة ودية")</dd> }
                         <dt>الملعب</dt><dd>@(m.VenueName ?? "—") @if (Model.VenueAddress != null) { <span class="text-muted small">(@Model.VenueAddress)</span> }</dd>
                         @foreach (var (role, name) in Model.Officials) { <dt>@role.GetDisplayName()</dt><dd>@name</dd> }
                         @if (Model.Attendance != null) { <dt>الحضور</dt><dd>@Model.Attendance.Value.ToString("N0")</dd> }

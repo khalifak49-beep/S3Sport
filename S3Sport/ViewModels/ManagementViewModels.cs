@@ -238,6 +238,8 @@ public class TeamMatchFormViewModel
     [Display(Name = "الخصم")] public int? OpponentTeamId { get; set; }
     [StringLength(150)][Display(Name = "أو اكتب اسم فريق غير مسجل في المنصة")] public string? OpponentGuestName { get; set; }
     [Display(Name = "فريقي يلعب على أرضه (المستضيف)")] public bool IsHome { get; set; } = true;
+    [Display(Name = "نوع المباراة")] public bool IsTournament { get; set; }
+    [StringLength(150, ErrorMessage = "اسم البطولة طويل جداً")][Display(Name = "اسم البطولة")] public string? TournamentName { get; set; }
     [Required(ErrorMessage = "موعد المباراة مطلوب")][Display(Name = "الموعد (بتوقيت مسقط)")] public DateTime? KickoffLocal { get; set; }
     [Display(Name = "الملعب")] public int? VenueId { get; set; }
     [Display(Name = "الحالة")] public MatchStatus Status { get; set; } = MatchStatus.Scheduled;
@@ -390,6 +392,10 @@ public class MatchRow
     public string? StageName { get; set; }
     public string? GroupName { get; set; }
     public string? CompetitionName { get; set; }
+    /// <summary>Tournament typed by the organizing team (matches outside the platform's competitions).</summary>
+    public string? TournamentName { get; set; }
+    /// <summary>The platform competition, else the typed tournament; null for a friendly.</summary>
+    public string? EventName => CompetitionName ?? TournamentName;
     public string? VenueName { get; set; }
     public string? OperatorName { get; set; }
     public int CurrentPeriod { get; set; }

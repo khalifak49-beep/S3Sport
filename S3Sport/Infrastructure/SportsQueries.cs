@@ -27,6 +27,7 @@ public static class SportsQueries
             StageName = m.Stage != null ? m.Stage.NameAr : null,
             GroupName = m.Group != null ? m.Group.Name : null,
             CompetitionName = m.CompetitionSeason != null ? m.CompetitionSeason.Competition.NameAr : null,
+            TournamentName = m.TournamentName,
             VenueName = m.Venue != null ? m.Venue.NameAr : null,
             OperatorName = m.OperatorUser != null ? m.OperatorUser.FullName : null,
             CurrentPeriod = m.CurrentPeriod,

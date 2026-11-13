@@ -51,7 +51,7 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
         {
             MatchId = m.Id, HomeTeamId = m.HomeTeamId, AwayTeamId = m.AwayTeamId,
             HomeName = m.HomeTeam.NameAr, HomeLogo = m.HomeTeam.LogoPath, AwayName = m.AwayTeam.NameAr, AwayLogo = m.AwayTeam.LogoPath,
-            CompetitionName = m.CompetitionSeason?.Competition.NameAr, RoundName = m.RoundName, VenueName = m.Venue?.NameAr,
+            CompetitionName = m.CompetitionSeason?.Competition.NameAr ?? m.TournamentName,RoundName = m.RoundName, VenueName = m.Venue?.NameAr,
             IsKnockout = m.Stage?.StageType == StageType.Knockout, Status = m.Status,
             HomeIsGuest = m.HomeTeam.Status == TeamStatus.Guest, AwayIsGuest = m.AwayTeam.Status == TeamStatus.Guest,
             Live = (await MatchLiveHelper.BuildDtoAsync(db, id, includeCancelled: true))!,

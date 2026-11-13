@@ -313,6 +313,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
         {
             Id = m.Id, TeamId = id, IsHome = isHome, OpponentTeamId = isHome ? m.AwayTeamId : m.HomeTeamId,
             KickoffLocal = m.KickoffAt.ToMuscat(), VenueId = m.VenueId, Status = m.Status, Notes = m.Notes,
+            IsTournament = m.TournamentName != null, TournamentName = m.TournamentName,
             RefereeName = m.Officials.FirstOrDefault(o => o.Role == MatchOfficialRole.Referee)?.Name,
             HasStarted = m.Status is not (MatchStatus.Scheduled or MatchStatus.Postponed or MatchStatus.Cancelled)
                          || await db.MatchEvents.AnyAsync(e => e.MatchId == matchId),
@@ -347,6 +348,11 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
         if (model.OpponentTeamId == id) ModelState.AddModelError(nameof(model.OpponentTeamId), "لا يمكن أن يلعب الفريق ضد نفسه.");
         if (model.OpponentTeamId is { } opp && !await db.Teams.AnyAsync(t => t.Id == opp && (t.Status == TeamStatus.Approved || t.Status == TeamStatus.Guest)))
             ModelState.AddModelError(nameof(model.OpponentTeamId), "الخصم غير صالح.");
+        // Optional: friendly by default; a tournament needs its name.
+        var tournament = model.IsTournament ? model.TournamentName?.Trim() : null;
+        if (string.IsNullOrEmpty(tournament)) tournament = null;
+        if (model.IsTournament && tournament == null)
+            ModelState.AddModelError(nameof(model.TournamentName), "اكتب اسم البطولة، أو اختر «ودية».");
         if (!FriendlyStatuses.Contains(model.Status)) ModelState.AddModelError(nameof(model.Status), "الحالة غير صالحة.");
         if (model.Id == 0 && model.Status != MatchStatus.Scheduled) model.Status = MatchStatus.Scheduled;
         if (model.KickoffLocal is { } k && Math.Abs((k - DateTime.UtcNow.ToMuscat()).TotalDays) > 366)
@@ -377,6 +383,7 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
                 match.VenueId = model.VenueId;
                 match.Status = model.Status;
                 match.Notes = model.Notes?.Trim();
+                match.TournamentName = tournament;
                 var referee = match.Officials.FirstOrDefault(o => o.Role == MatchOfficialRole.Referee);
                 if (string.IsNullOrWhiteSpace(model.RefereeName)) { if (referee != null) db.MatchOfficials.Remove(referee); }
                 else if (referee == null) match.Officials.Add(new MatchOfficial { Role = MatchOfficialRole.Referee, Name = model.RefereeName.Trim() });
@@ -464,7 +471,9 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             var when = match.KickoffAt.ToMuscatString("dddd yyyy/MM/dd HH:mm");
             if (isNew)
                 await NotificationHelper.NotifyFollowersAsync(db, hub, [match.HomeTeamId, match.AwayTeamId], [], null,
-                    NotificationType.MatchScheduled, $"مباراة ودية جديدة: {title}", when, $"/matches/{match.Id}");
+                    NotificationType.MatchScheduled,
+                    match.TournamentName != null ? $"مباراة جديدة في {match.TournamentName}: {title}" : $"مباراة ودية جديدة: {title}",
+                    when, $"/matches/{match.Id}");
             else if (oldStatus != match.Status && match.Status is MatchStatus.Postponed or MatchStatus.Cancelled)
                 await NotificationHelper.NotifyMatchFollowersAsync(db, hub, match.Id, NotificationType.MatchRescheduled,
                     $"{(match.Status == MatchStatus.Postponed ? "تأجيل" : "إلغاء")} مباراة: {title}", match.Notes);

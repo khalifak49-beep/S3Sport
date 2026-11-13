@@ -6,9 +6,9 @@
 <a class="match-card @(Model.IsLive ? "is-live" : "") @(Model.HasScore ? "has-score" : "")" href="/matches/@Model.Id"
    data-live-match="@Model.Id" data-status="@Model.Status" data-period="@Model.CurrentPeriod"
    data-period-start="@Model.PeriodStartIso" data-period-duration="@Model.PeriodDurationMinutes">
-    @if (showCompetition && Model.CompetitionName != null)
+    @if (showCompetition && Model.EventName != null)
     {
-        <div class="mc-competition text-truncate">@Model.CompetitionName @(Model.RoundName != null ? "· " + Model.RoundName : "")</div>
+        <div class="mc-competition text-truncate">@Model.EventName @(Model.RoundName != null ? "· " + Model.RoundName : "")</div>
     }
     <div class="mc-team mc-home">
         <span class="mc-name">@Model.HomeName</span>

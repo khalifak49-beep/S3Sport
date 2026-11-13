@@ -53,6 +53,12 @@ public class Match : BaseEntity, ISoftDelete
     public int? OrganizerTeamId { get; set; }
     public Team? OrganizerTeam { get; set; }
 
+    /// <summary>
+    /// Free-text tournament name typed by the organizing team for a match outside the platform's competitions
+    /// (null = friendly). Display only: no standings, no competition page.
+    /// </summary>
+    [StringLength(150)] public string? TournamentName { get; set; }
+
     [StringLength(500)] public string? Notes { get; set; }
 
     public bool IsDeleted { get; set; }

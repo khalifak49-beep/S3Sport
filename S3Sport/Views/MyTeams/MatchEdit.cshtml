@@ -1,6 +1,6 @@
 @model TeamMatchFormViewModel
 @{
-    ViewData["Title"] = Model.Id == 0 ? "مباراة ودية جديدة" : "تعديل المباراة";
+    ViewData["Title"] = Model.Id == 0 ? "مباراة جديدة" : "تعديل المباراة";
     var statuses = new[] { MatchStatus.Scheduled, MatchStatus.Postponed, MatchStatus.Cancelled };
 }
 <div class="s3-card mx-auto" style="max-width:820px">
@@ -25,6 +25,20 @@
                     <label asp-for="OpponentGuestName" class="form-label"></label>
                     <input asp-for="OpponentGuestName" class="form-control" placeholder="مثال: فريق شباب القرية" />
                     <span asp-validation-for="OpponentGuestName" class="field-validation-error"></span>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label d-block">@Html.DisplayNameFor(m => m.IsTournament) <span class="text-muted small">(اختياري)</span></label>
+                    <div class="btn-group w-100" role="group" data-match-kind>
+                        <input type="radio" class="btn-check" name="IsTournament" id="kind-friendly" value="false" @(Model.IsTournament ? "" : "checked") />
+                        <label class="btn btn-outline-primary" for="kind-friendly">ودية</label>
+                        <input type="radio" class="btn-check" name="IsTournament" id="kind-tournament" value="true" @(Model.IsTournament ? "checked" : "") />
+                        <label class="btn btn-outline-primary" for="kind-tournament">بطولة</label>
+                    </div>
+                </div>
+                <div class="col-md-6 @(Model.IsTournament ? "" : "d-none")" data-tournament-field>
+                    <label asp-for="TournamentName" class="form-label"></label>
+                    <input asp-for="TournamentName" class="form-control" maxlength="150" placeholder="مثال: بطولة الولاية الرمضانية" />
+                    <span asp-validation-for="TournamentName" class="field-validation-error"></span>
                 </div>
                 <div class="col-12">
                     <div class="form-check form-switch">
@@ -54,3 +68,12 @@
         </form>
     </div>
 </div>
+<script>
+    // «بطولة» shows the tournament name field; «ودية» hides it (the server ignores the name for a friendly).
+    document.querySelectorAll('[data-match-kind] input').forEach(r => r.addEventListener('change', () => {
+        const field = document.querySelector('[data-tournament-field]');
+        const on = document.getElementById('kind-tournament').checked;
+        field.classList.toggle('d-none', !on);
+        if (on) field.querySelector('input').focus();
+    }));
+</script>
