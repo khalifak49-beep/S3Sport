@@ -169,7 +169,15 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
             return RedirectToAction(nameof(Edit), new { id = model.Id });
         }
 
-        // Notify followers after the commit.
+        // Notify after the commit (match notifications reach every user who has not muted the match or its teams).
+        if (isNew && match.Status == MatchStatus.Scheduled)
+        {
+            var name = await db.Matches.Where(m => m.Id == match.Id)
+                .Select(m => m.CompetitionSeason != null ? m.CompetitionSeason.Competition.NameAr : m.TournamentName).FirstOrDefaultAsync();
+            await NotificationHelper.NotifyMatchFollowersAsync(db, hub, match.Id, NotificationType.MatchScheduled,
+                name != null ? $"مباراة جديدة في {name}: {await MatchTitleAsync(match.Id)}" : $"مباراة ودية جديدة: {await MatchTitleAsync(match.Id)}",
+                match.KickoffAt.ToMuscatString("dddd yyyy/MM/dd HH:mm"));
+        }
         if (!isNew)
         {
             var title = await MatchTitleAsync(match.Id);

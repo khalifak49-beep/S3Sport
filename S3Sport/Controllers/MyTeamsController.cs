@@ -470,10 +470,9 @@ public class MyTeamsController(ApplicationDbContext db, IWebHostEnvironment env,
             var title = await db.Matches.Where(m => m.Id == match.Id).Select(m => m.HomeTeam.NameAr + " × " + m.AwayTeam.NameAr).FirstAsync();
             var when = match.KickoffAt.ToMuscatString("dddd yyyy/MM/dd HH:mm");
             if (isNew)
-                await NotificationHelper.NotifyFollowersAsync(db, hub, [match.HomeTeamId, match.AwayTeamId], [], null,
-                    NotificationType.MatchScheduled,
+                await NotificationHelper.NotifyMatchFollowersAsync(db, hub, match.Id, NotificationType.MatchScheduled,
                     match.TournamentName != null ? $"مباراة جديدة في {match.TournamentName}: {title}" : $"مباراة ودية جديدة: {title}",
-                    when, $"/matches/{match.Id}");
+                    when);
             else if (oldStatus != match.Status && match.Status is MatchStatus.Postponed or MatchStatus.Cancelled)
                 await NotificationHelper.NotifyMatchFollowersAsync(db, hub, match.Id, NotificationType.MatchRescheduled,
                     $"{(match.Status == MatchStatus.Postponed ? "تأجيل" : "إلغاء")} مباراة: {title}", match.Notes);

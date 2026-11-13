@@ -258,8 +258,8 @@ public class FriendliesController(ApplicationDbContext db, IHubContext<LiveHub> 
         try
         {
             var title = await db.Matches.Where(m => m.Id == match.Id).Select(m => m.HomeTeam.NameAr + " × " + m.AwayTeam.NameAr).FirstAsync();
-            await NotificationHelper.NotifyFollowersAsync(db, hub, [match.HomeTeamId, match.AwayTeamId], [], null,
-                NotificationType.MatchScheduled, $"مباراة ودية جديدة: {title}", when, $"/matches/{match.Id}");
+            await NotificationHelper.NotifyMatchFollowersAsync(db, hub, match.Id,
+                NotificationType.MatchScheduled, $"مباراة ودية جديدة: {title}", when);
             await hub.Clients.Group(LiveHub.LiveGroup).SendAsync("matchChanged", new { matchId = match.Id });
         }
         catch (Exception ex) { logger.LogWarning(ex, "Follower notification failed for friendly {MatchId}", match.Id); }

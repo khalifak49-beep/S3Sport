@@ -44,12 +44,21 @@ check "save edit" 302 "$(postm tf_m.jar /MyTeams/SavePlayer "$TOK" -F "Id=$(hidd
 check "the right player was edited" 1 "$(sql "SELECT COUNT(*) FROM Players WHERE Id=$NEWP AND FullNameAr=N'لاعب معدّل $R'")"
 
 echo "== Friendly match (form as rendered)"
+# Admin follows team B with notifications off: muting must keep "new match" away even though it goes to every user.
+TOK=$(token tf_a.jar /Teams); post tf_a.jar /Follows/Follow "$TOK" -d targetType=Team -d targetId=$TB > /dev/null
+post tf_a.jar /Follows/ToggleNotifications "$TOK" -d targetType=Team -d targetId=$TB > /dev/null
+ADMID=$(sql "SELECT Id FROM AspNetUsers WHERE Email='admin@s3sport.om'")
+check "admin muted team B" 0 "$(sql "SELECT CAST(NotificationsEnabled AS int) FROM UserFollows WHERE UserId='$ADMID' AND TeamId=$TB")"
 check "create-match form" 200 "$(get tf_m.jar /MyTeams/CreateMatch/$TA)"
 check "hidden Id is 0 for a new match" 0 "$(hidden Id)"
 TOK=$(token tf_m.jar /MyTeams/CreateMatch/$TA)
 check "save new match" 302 "$(post tf_m.jar /MyTeams/SaveMatch "$TOK" -d "Id=$(hidden Id)" -d "TeamId=$(hidden TeamId)" -d OpponentTeamId=$TB -d IsHome=true -d KickoffLocal=2026-12-20T17:00)"
 M=$(sql "SELECT Id FROM Matches WHERE OrganizerTeamId=$TA")
 check "match created" 1 "$(sql "SELECT COUNT(*) FROM Matches WHERE OrganizerTeamId=$TA")"
+check "new match notification reaches users who follow neither team" 1 "$(sql "SELECT COUNT(*) FROM Notifications n JOIN AspNetUsers u ON u.Id=n.UserId WHERE n.MatchId=$M AND n.Type=12 AND u.Email='tf-$R@test.om'")"
+EXP=$(sql "SELECT COUNT(*) - 1 FROM AspNetUsers WHERE IsActive=1")
+check "…every active user once, minus the one who muted" "$EXP/$EXP" "$(sql "SELECT COUNT(DISTINCT UserId) FROM Notifications WHERE MatchId=$M AND Type=12")/$(sql "SELECT COUNT(*) FROM Notifications WHERE MatchId=$M AND Type=12")"
+check "…except who muted one of the teams" 0 "$(sql "SELECT COUNT(*) FROM Notifications WHERE MatchId=$M AND Type=12 AND UserId='$ADMID'")"
 check "edit-match form" 200 "$(get tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")"
 check "hidden Id is the match" "$M" "$(hidden Id)"
 TOK=$(token tf_m.jar "/MyTeams/EditMatch/$TA?matchId=$M")

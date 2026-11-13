@@ -14,8 +14,20 @@ namespace S3Sport.Infrastructure;
 public static class NotificationHelper
 {
     /// <summary>
+    /// Match notifications every active user receives, not only followers (owner's decision): new match, kick-off,
+    /// goals, half-time, second half, result, and postponement/cancellation/new time. Cards, substitutions and missed
+    /// penalties stay with followers.
+    /// </summary>
+    public static readonly IReadOnlySet<NotificationType> BroadcastMatchTypes = new HashSet<NotificationType>
+    {
+        NotificationType.MatchScheduled, NotificationType.MatchStarted, NotificationType.Goal, NotificationType.HalfTime,
+        NotificationType.SecondHalfStarted, NotificationType.MatchEnded, NotificationType.MatchRescheduled
+    };
+
+    /// <summary>
     /// Followers of a match or of either team. An explicit match follow decides on its own
     /// (muting a match silences it even if the team is followed); otherwise any team follow with notifications on counts.
+    /// For <see cref="BroadcastMatchTypes"/> every active user is notified, except those who muted this match or its teams.
     /// </summary>
     public static async Task<int> NotifyMatchFollowersAsync(ApplicationDbContext db, IHubContext<LiveHub> hub,
         int matchId, NotificationType type, string title, string? message)
@@ -28,9 +40,17 @@ public static class NotificationHelper
             .Where(f => f.MatchId == matchId || f.TeamId == teams.HomeTeamId || f.TeamId == teams.AwayTeamId)
             .Select(f => new { f.UserId, f.MatchId, f.NotificationsEnabled })
             .ToListAsync();
-        var recipients = follows.GroupBy(f => f.UserId)
-            .Where(g => g.Any(f => f.MatchId != null) ? g.First(f => f.MatchId != null).NotificationsEnabled : g.Any(f => f.NotificationsEnabled))
-            .Select(g => g.Key).ToList();
+        var byUser = follows.GroupBy(f => f.UserId).ToDictionary(g => g.Key,
+            g => g.Any(f => f.MatchId != null) ? g.First(f => f.MatchId != null).NotificationsEnabled : g.Any(f => f.NotificationsEnabled));
+
+        List<string> recipients;
+        if (BroadcastMatchTypes.Contains(type))
+        {
+            var muted = byUser.Where(u => !u.Value).Select(u => u.Key).ToHashSet();
+            recipients = (await db.Users.AsNoTracking().Where(u => u.IsActive).Select(u => u.Id).ToListAsync())
+                .Where(id => !muted.Contains(id)).ToList();
+        }
+        else recipients = byUser.Where(u => u.Value).Select(u => u.Key).ToList();
 
         return await SendAsync(db, hub, recipients, type, title, message, $"/matches/{matchId}", matchId: matchId);
     }

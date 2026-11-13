@@ -155,7 +155,8 @@ check "goal notifications (1+5+own+pen = 8)" 8 "$(sql "SELECT COUNT(*) FROM Noti
 check "half-time notification" 1 "$(sql "SELECT COUNT(*) FROM Notifications WHERE UserId='$FANID' AND MatchId=$M AND Type=2")"
 check "full-time notifications (ended twice)" 2 "$(sql "SELECT COUNT(*) FROM Notifications WHERE UserId='$FANID' AND MatchId=$M AND Type=3")"
 check "one notification per card recorded" "$(sql "SELECT COUNT(*) FROM MatchEvents WHERE MatchId=$M AND EventType IN (5,6,7)")" "$(sql "SELECT COUNT(*) FROM Notifications WHERE UserId='$FANID' AND MatchId=$M AND Type=9")"
-check "operator (not following) got none" 0 "$(sql "SELECT COUNT(*) FROM Notifications WHERE UserId='$OPID'")"
+check "operator (not following) still gets kick-off and goals (sent to every user)" "1/8" "$(sql "SELECT CONCAT(SUM(CASE WHEN Type=0 THEN 1 ELSE 0 END),'/',SUM(CASE WHEN Type=1 THEN 1 ELSE 0 END)) FROM Notifications WHERE UserId='$OPID' AND MatchId=$M")"
+check "…but not cards, missed penalties or substitutions (followers only)" 0 "$(sql "SELECT COUNT(*) FROM Notifications WHERE UserId='$OPID' AND MatchId=$M AND Type IN (9,10,11)")"
 echo "  · muting the team silences new alerts"
 TOK=$(token p4_fan.jar /Teams); post p4_fan.jar /Follows/ToggleNotifications "$TOK" -d targetType=Team -d targetId=$TH > /dev/null
 check "audit trail for events" 1 "$(sql "SELECT CASE WHEN COUNT(*) >= 15 THEN 1 ELSE 0 END FROM AuditLogs WHERE EntityName='Match' AND EntityId='$M'")"
