@@ -33,6 +33,10 @@
                         <div class="form-control-plaintext fw-semibold">@(Model.Editions.FirstOrDefault(e => e.Value == Model.CompetitionSeasonId?.ToString())?.Text ?? "مباراة ودية")</div>
                     }
                 </div>
+                @if (Model.CompetitionSeasonId == null)
+                {
+                    <div class="col-12"><div class="row g-3"><partial name="_MatchKindFields" model="(Model.IsTournament, Model.TournamentName)" /></div></div>
+                }
                 @if (Model.CompetitionSeasonId != null)
                 {
                     <div class="col-md-3"><label asp-for="StageId" class="form-label"></label><select asp-for="StageId" asp-items="Model.Stages" class="form-select"><option value="">—</option></select><span asp-validation-for="StageId" class="field-validation-error"></span></div>

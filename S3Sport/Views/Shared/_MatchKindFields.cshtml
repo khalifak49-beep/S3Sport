@@ -1,0 +1,26 @@
+@model (bool IsTournament, string? TournamentName)
+@* Optional match type for a match outside the platform's competitions: friendly (default) or a tournament typed by name.
+   Posts IsTournament and TournamentName; used by the team manager's and the admin's match forms. *@
+<div class="col-md-6">
+    <label class="form-label d-block">نوع المباراة <span class="text-muted small">(اختياري)</span></label>
+    <div class="btn-group w-100" role="group" data-match-kind>
+        <input type="radio" class="btn-check" name="IsTournament" id="kind-friendly" value="false" @(Model.IsTournament ? "" : "checked") />
+        <label class="btn btn-outline-primary" for="kind-friendly">ودية</label>
+        <input type="radio" class="btn-check" name="IsTournament" id="kind-tournament" value="true" @(Model.IsTournament ? "checked" : "") />
+        <label class="btn btn-outline-primary" for="kind-tournament">بطولة</label>
+    </div>
+</div>
+<div class="col-md-6 @(Model.IsTournament ? "" : "d-none")" data-tournament-field>
+    <label class="form-label" for="TournamentName">اسم البطولة</label>
+    <input class="form-control" id="TournamentName" name="TournamentName" value="@Model.TournamentName" maxlength="150" placeholder="مثال: دوري ملتقى البداية" />
+    <span class="field-validation-error" data-valmsg-for="TournamentName">@ViewContext.ViewData.ModelState["TournamentName"]?.Errors.FirstOrDefault()?.ErrorMessage</span>
+</div>
+<script>
+    // «بطولة» shows the tournament name field; «ودية» hides it (the server ignores the name for a friendly).
+    document.querySelectorAll('[data-match-kind] input').forEach(r => r.addEventListener('change', () => {
+        const field = document.querySelector('[data-tournament-field]');
+        const on = document.getElementById('kind-tournament').checked;
+        field.classList.toggle('d-none', !on);
+        if (on) field.querySelector('input').focus();
+    }));
+</script>

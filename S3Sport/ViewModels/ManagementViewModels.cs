@@ -448,6 +448,9 @@ public class MatchFormViewModel
 
     public string? RowVersion { get; set; }
     public bool HasStarted { get; set; }
+    /// <summary>For a match outside the platform's competitions: a tournament typed by name (else friendly).</summary>
+    public bool IsTournament { get; set; }
+    [StringLength(150, ErrorMessage = "اسم البطولة طويل جداً")] public string? TournamentName { get; set; }
     public IEnumerable<SelectListItem> Editions { get; set; } = [];
     public IEnumerable<SelectListItem> Stages { get; set; } = [];
     public IEnumerable<SelectListItem> Groups { get; set; } = [];

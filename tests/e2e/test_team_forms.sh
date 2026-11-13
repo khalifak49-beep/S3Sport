@@ -86,5 +86,26 @@ check "…name cleared" NULL "$(sql "SELECT ISNULL(TournamentName,'NULL') FROM M
 get tf_m.jar "/matches/$M" > /dev/null
 check "…page shows «مباراة ودية» again" 1 "$(grep -c '<span>مباراة ودية</span>' $T/body.html)"
 
+echo "== Admin sets the type on a match already played (the team form no longer edits it)"
+LNAME="دوري ملتقى البداية $R"
+sql "UPDATE Matches SET Status=3, HomeScore=2, AwayScore=1 WHERE Id=$M" > /dev/null   # 3 = Finished
+check "admin edit form has the match type" 200 "$(get tf_a.jar /Admin/Matches/Edit/$M)"
+check "…«ودية» selected" 1 "$(grep -c 'id="kind-friendly" value="false" checked' $T/body.html)"
+adminsave() { # IsTournament [TournamentName]
+  get tf_a.jar /Admin/Matches/Edit/$M > /dev/null
+  local rv; rv=$(hidden RowVersion); local tok; tok=$(token tf_a.jar /Admin/Matches/Edit/$M)
+  post tf_a.jar /Admin/Matches/Save "$tok" -d Id=$M -d HomeTeamId=$TA -d AwayTeamId=$TB -d KickoffLocal=2026-12-21T18:00 \
+       -d Status=Finished -d ResultHome=2 -d ResultAway=1 --data-urlencode "RowVersion=$rv" -d "IsTournament=$1" -d "TournamentName=$(urlenc "${2:-}")"
+}
+check "tournament without a name refused" 200 "$(adminsave true)"
+check "…with the reason" 1 "$(grep -c 'اكتب اسم البطولة' $T/body.html)"
+check "admin saves the league name" 302 "$(adminsave true "$LNAME")"
+check "…stored, result kept" 1 "$(sql "SELECT COUNT(*) FROM Matches WHERE Id=$M AND TournamentName=N'$LNAME' AND HomeScore=2 AND AwayScore=1 AND Status=3")"
+get tf_a.jar /Admin/Matches/Edit/$M > /dev/null
+check "…form shows it on reopen" "1/1" "$(grep -c 'id="kind-tournament" value="true" checked' $T/body.html)/$(grep -c "value=\"$LNAME\"" $T/body.html)"
+get tf_a.jar "/matches/$M" > /dev/null
+check "public page shows the league" 1 "$(grep -c "<span>$LNAME</span>" $T/body.html)"
+check "admin form for a platform-competition match has no type choice" 0 "$(get tf_a.jar /Admin/Matches/Edit/$(sql "SELECT TOP 1 Id FROM Matches WHERE CompetitionSeasonId IS NOT NULL AND IsDeleted=0") > /dev/null; grep -c 'data-match-kind' $T/body.html)"
+
 echo
 echo "RESULT: $PASS passed, $FAIL failed"

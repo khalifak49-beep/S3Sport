@@ -62,6 +62,7 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
             Id = m.Id, CompetitionSeasonId = m.CompetitionSeasonId, StageId = m.StageId, GroupId = m.GroupId,
             RoundNumber = m.RoundNumber, RoundName = m.RoundName, HomeTeamId = m.HomeTeamId, AwayTeamId = m.AwayTeamId,
             KickoffLocal = m.KickoffAt.ToMuscat(), VenueId = m.VenueId, Status = m.Status, OperatorUserId = m.OperatorUserId, Notes = m.Notes,
+            IsTournament = m.TournamentName != null, TournamentName = m.TournamentName,
             RefereeName = m.Officials.FirstOrDefault(o => o.Role == MatchOfficialRole.Referee)?.Name,
             Assistant1Name = m.Officials.FirstOrDefault(o => o.Role == MatchOfficialRole.AssistantReferee1)?.Name,
             Assistant2Name = m.Officials.FirstOrDefault(o => o.Role == MatchOfficialRole.AssistantReferee2)?.Name,
@@ -93,6 +94,11 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
                 .Select(s => (int?)s.Id).FirstOrDefaultAsync();
 
         await ValidateAsync(model, match);
+        // A match outside the platform's competitions may carry a typed tournament name (optional; friendly otherwise).
+        var tournament = model.CompetitionSeasonId == null && model.IsTournament ? model.TournamentName?.Trim() : null;
+        if (string.IsNullOrEmpty(tournament)) tournament = null;
+        if (model.CompetitionSeasonId == null && model.IsTournament && tournament == null)
+            ModelState.AddModelError(nameof(model.TournamentName), "اكتب اسم البطولة، أو اختر «ودية».");
         if (!ModelState.IsValid) return View("Edit", await FillAsync(model));
 
         var isNew = match == null;
@@ -119,6 +125,7 @@ public class MatchesController(ApplicationDbContext db, IHubContext<LiveHub> hub
         match.VenueId = model.VenueId;
         match.OperatorUserId = string.IsNullOrEmpty(model.OperatorUserId) ? null : model.OperatorUserId;
         match.Notes = model.Notes?.Trim();
+        match.TournamentName = tournament;
         match.Status = model.Status;
 
         if (model.Status == MatchStatus.Finished && !hasEvents)
