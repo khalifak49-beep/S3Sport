@@ -145,6 +145,24 @@ check "save lineup" 302 "$(post p4_op.jar /MatchControl/SaveLineup/$M "$TOK" -d 
 check "4 starters + 1 bench" "4 1" "$(sql "SELECT CONCAT(SUM(CASE WHEN IsStarter=1 THEN 1 ELSE 0 END),' ',SUM(CASE WHEN IsStarter=0 THEN 1 ELSE 0 END)) FROM MatchLineups WHERE MatchId=$M")"
 check "foreign player ignored in lineup" 0 "$(post p4_op.jar /MatchControl/SaveLineup/$M "$TOK" -d homeStarters=$PA1 > /dev/null; sql "SELECT COUNT(*) FROM MatchLineups WHERE MatchId=$M AND TeamId=$TH AND PlayerId=$PA1")"
 post p4_op.jar /MatchControl/SaveLineup/$M "$TOK" -d homeStarters=$PH1 -d homeStarters=$PH2 -d homeBench=$PH3 -d awayStarters=$PA1 -d awayStarters=$PA2 > /dev/null
+
+echo "== Moving starters on the pitch"
+check "operator page offers the pitch arrangement" 1 "$(get p4_op.jar /MatchControl/Index/$M > /dev/null; grep -c 'id="pitchArrange"' $T/body.html)"
+# H2 → forward (4) first in line, H1 → forward second, A1 → goalkeeper (1); the bench player and a foreign/invalid line are ignored.
+check "save pitch arrangement" 302 "$(post p4_op.jar /MatchControl/SavePitch/$M "$TOK" \
+  -d 'slots[0].PlayerId'=$PH1 -d 'slots[0].PositionId'=4 -d 'slots[0].Order'=2 \
+  -d 'slots[1].PlayerId'=$PH2 -d 'slots[1].PositionId'=4 -d 'slots[1].Order'=1 \
+  -d 'slots[2].PlayerId'=$PA1 -d 'slots[2].PositionId'=1 -d 'slots[2].Order'=1 \
+  -d 'slots[3].PlayerId'=$PH3 -d 'slots[3].PositionId'=2 -d 'slots[3].Order'=1 \
+  -d 'slots[4].PlayerId'=$PA2 -d 'slots[4].PositionId'=999 -d 'slots[4].Order'=1)"
+check "lines and order saved" "4:2 4:1 1:1" "$(sql "SELECT CONCAT((SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH1),' ',(SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH2),' ',(SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PA1))")"
+check "bench player and invalid line untouched" "x x" "$(sql "SELECT CONCAT(ISNULL(CAST((SELECT PitchOrder FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH3) AS varchar),'x'),' ',ISNULL(CAST((SELECT PitchOrder FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PA2) AS varchar),'x'))")"
+LP=$(get p4_op.jar /matches/$M > /dev/null; cat $T/body.html | tr -d '\r\n' | grep -o 'data-lineup-side="home".*data-lineup-side="away"' | grep -o 'data-lineup-player="[0-9]*"' | head -2 | grep -o '[0-9]*' | tr '\n' ' ')
+check "public pitch shows H2 then H1 in the same line" "$PH2 $PH1 " "$LP"
+post p4_op.jar /MatchControl/SaveLineup/$M "$TOK" -d homeStarters=$PH1 -d homeStarters=$PH2 -d homeBench=$PH3 -d awayStarters=$PA1 -d awayStarters=$PA2 > /dev/null
+check "re-saving the lineup keeps the arrangement" "4:2 4:1" "$(sql "SELECT CONCAT((SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH1),' ',(SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH2))")"
+check "a fan cannot move players" DENIED "$(TOKF=$(token p4_fan.jar /Teams); denied $(post p4_fan.jar /MatchControl/SavePitch/$M "$TOKF" -d 'slots[0].PlayerId'=$PH1 -d 'slots[0].PositionId'=1 -d 'slots[0].Order'=1))"
+check "…and nothing changed" "4:2" "$(sql "SELECT CONCAT(PositionId,':',PitchOrder) FROM MatchLineups WHERE MatchId=$M AND PlayerId=$PH1")"
 check "H1 starts counted" 1 "$(sql "SELECT Starts FROM PlayerStatistics WHERE CompetitionSeasonId=$ED AND PlayerId=$PH1")"
 check "report with best player" 302 "$(post p4_op.jar /MatchControl/SaveReport/$M "$TOK" -d bestPlayerId=$PA2 -d attendance=350 -d "summary=$(urlenc "مباراة قوية")")"
 check "best-player award in stats" 1 "$(sql "SELECT BestPlayerAwards FROM PlayerStatistics WHERE CompetitionSeasonId=$ED AND PlayerId=$PA2")"

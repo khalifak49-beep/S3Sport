@@ -84,6 +84,17 @@ public class SquadPlayer
     public string? Position { get; set; }
     public bool InLineup { get; set; }
     public bool IsStarter { get; set; }
+    /// <summary>The line the player stands on in this match (the lineup's position, else the squad's).</summary>
+    public int? PositionId { get; set; }
+    public int? PitchOrder { get; set; }
+}
+
+/// <summary>One starter's place on the pitch view: their line (a football position) and order within it.</summary>
+public class PitchSlot
+{
+    public int PlayerId { get; set; }
+    public int PositionId { get; set; }
+    public int Order { get; set; }
 }
 
 public class OperatorViewModel
@@ -106,6 +117,8 @@ public class OperatorViewModel
     public MatchLiveDto Live { get; set; } = new();
     public List<SquadPlayer> HomeSquad { get; set; } = [];
     public List<SquadPlayer> AwaySquad { get; set; } = [];
+    /// <summary>Football lines (GK/DF/MF/FW) for arranging the starters on the pitch.</summary>
+    public List<SportPosition> Positions { get; set; } = [];
     public int? BestPlayerId { get; set; }
     public int? Attendance { get; set; }
     public string? Summary { get; set; }

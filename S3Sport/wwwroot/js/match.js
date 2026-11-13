@@ -81,14 +81,19 @@
     };
 
     // Lineup: team switch, and per-player marks (goals, cards, substitutions) drawn from the same live events.
-    document.querySelectorAll('[data-lineup-show]').forEach(btn => btn.addEventListener('click', () => {
+    // (Delegated: the lineup tab is re-rendered when the operator changes the lineup.)
+    const showSide = side => {
         document.querySelectorAll('[data-lineup-show]').forEach(b => {
-            const on = b === btn;
+            const on = b.dataset.lineupShow === side;
             b.classList.toggle('active', on);
             b.setAttribute('aria-pressed', on ? 'true' : 'false');
         });
-        document.querySelectorAll('[data-lineup-panel]').forEach(p => p.classList.toggle('d-none', p.dataset.lineupPanel !== btn.dataset.lineupShow));
-    }));
+        document.querySelectorAll('[data-lineup-panel]').forEach(p => p.classList.toggle('d-none', p.dataset.lineupPanel !== side));
+    };
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('[data-lineup-show]');
+        if (btn) { showSide(btn.dataset.lineupShow); }
+    });
 
     const minuteText = ev => `${ev.minute}${ev.extraMinute ? '+' + ev.extraMinute : ''}'`;
     const renderLineupMarks = () => {
@@ -146,6 +151,23 @@
         render();
     };
     document.addEventListener('s3:matchState', e => apply(e.detail));
+
+    // Lineup saved or players moved on the pitch: reload just the lineup tab, keeping the team being viewed.
+    document.addEventListener('s3:lineupChanged', async e => {
+        if (e.detail?.matchId !== matchId) { return; }
+        const tab = document.getElementById('tab-lineups');
+        if (!tab) { return; }
+        try {
+            const res = await fetch(location.pathname, { headers: { Accept: 'text/html' } });
+            if (!res.ok) { return; }
+            const fresh = new DOMParser().parseFromString(await res.text(), 'text/html').getElementById('tab-lineups');
+            if (!fresh) { return; }
+            const side = tab.querySelector('[data-lineup-show].active')?.dataset.lineupShow;
+            tab.innerHTML = fresh.innerHTML;
+            if (side && tab.querySelector(`[data-lineup-panel="${side}"]`)) { showSide(side); }
+            renderLineupMarks();
+        } catch { /* offline: the next visit shows it */ }
+    });
 
     // Fallback polling (e.g. proxies without WebSockets) while the match is in play.
     setInterval(async () => {

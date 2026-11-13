@@ -57,6 +57,7 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
             Live = (await MatchLiveHelper.BuildDtoAsync(db, id, includeCancelled: true))!,
             HomeSquad = await SquadAsync(m.HomeTeamId, id, lineup),
             AwaySquad = await SquadAsync(m.AwayTeamId, id, lineup),
+            Positions = await FootballLinesAsync(),
             BestPlayerId = m.Report?.BestPlayerId, Attendance = m.Report?.Attendance, Summary = m.Report?.Summary,
             Revisions = await db.MatchEventRevisions.AsNoTracking().Where(r => r.MatchEvent.MatchId == id)
                 .OrderByDescending(r => r.Id).Take(30)
@@ -278,13 +279,20 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
         {
             var allowed = await db.TeamPlayers.Where(tp => tp.TeamId == teamId && tp.IsActive)
                 .Select(tp => new { tp.PlayerId, tp.ShirtNumber, tp.PositionId, tp.IsCaptain }).ToListAsync();
-            var already = await db.MatchLineups.Where(l => l.MatchId == id && l.TeamId == teamId).Select(l => l.PlayerId).ToListAsync();
+            // Players already in this lineup keep their place on the pitch (line and order) set by the operator.
+            var already = await db.MatchLineups.Where(l => l.MatchId == id && l.TeamId == teamId)
+                .Select(l => new { l.PlayerId, l.PositionId, l.PitchOrder }).ToListAsync();
             return starters.Distinct().Select(p => (p, true)).Concat(bench.Distinct().Except(starters).Select(p => (p, false)))
-                .Where(x => allowed.Any(a => a.PlayerId == x.p) || already.Contains(x.p))
+                .Where(x => allowed.Any(a => a.PlayerId == x.p) || already.Any(l => l.PlayerId == x.p))
                 .Select(x =>
                 {
                     var a = allowed.FirstOrDefault(a => a.PlayerId == x.p);
-                    return new MatchLineup { MatchId = id, TeamId = teamId, PlayerId = x.p, IsStarter = x.Item2, ShirtNumber = a?.ShirtNumber, PositionId = a?.PositionId, IsCaptain = a?.IsCaptain ?? false };
+                    var prev = already.FirstOrDefault(l => l.PlayerId == x.p);
+                    return new MatchLineup
+                    {
+                        MatchId = id, TeamId = teamId, PlayerId = x.p, IsStarter = x.Item2, ShirtNumber = a?.ShirtNumber,
+                        PositionId = prev != null ? prev.PositionId : a?.PositionId, PitchOrder = prev?.PitchOrder, IsCaptain = a?.IsCaptain ?? false
+                    };
                 }).ToList();
         }
 
@@ -296,7 +304,7 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
             db.MatchLineups.AddRange(lineup.Select(l => new MatchLineup
             {
                 MatchId = l.MatchId, TeamId = l.TeamId, PlayerId = l.PlayerId, IsStarter = l.IsStarter,
-                ShirtNumber = l.ShirtNumber, PositionId = l.PositionId, IsCaptain = l.IsCaptain
+                ShirtNumber = l.ShirtNumber, PositionId = l.PositionId, PitchOrder = l.PitchOrder, IsCaptain = l.IsCaptain
             }));
             db.AddAudit(HttpContext, "حفظ تشكيلة مباراة", nameof(Match), id, $"{lineup.Count(l => l.IsStarter)} أساسي");
             await db.SaveChangesAsync();
@@ -308,6 +316,41 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
         TempData["Success"] = "تم حفظ التشكيلة.";
         return RedirectToAction(nameof(Index), new { id });
     }
+
+    /// <summary>
+    /// Moves starters on the pitch view after the lineup is out: each one's line (GK/DF/MF/FW) and order within it.
+    /// Allowed at any time, even after the final whistle; only display fields change, so stats and standings are untouched.
+    /// </summary>
+    [HttpPost]
+    public async Task<IActionResult> SavePitch(int id, List<PitchSlot> slots)
+    {
+        if (!await db.CanOperateMatchAsync(User, id)) return Forbid();
+        if (!await db.Matches.AnyAsync(m => m.Id == id)) return NotFound();
+
+        var lines = (await FootballLinesAsync()).Select(p => p.Id).ToHashSet();
+        var rows = await db.MatchLineups.Where(l => l.MatchId == id && l.IsStarter).ToListAsync();
+        var changed = 0;
+        foreach (var s in slots.GroupBy(s => s.PlayerId).Select(g => g.Last()))
+        {
+            var row = rows.FirstOrDefault(r => r.PlayerId == s.PlayerId);
+            if (row == null || !lines.Contains(s.PositionId)) continue;
+            row.PositionId = s.PositionId;
+            row.PitchOrder = s.Order;
+            changed++;
+        }
+        if (changed > 0)
+        {
+            db.AddAudit(HttpContext, "ترتيب التشكيلة على الملعب", nameof(Match), id, $"{changed} لاعب");
+            await db.SaveChangesAsync();
+            await hub.Clients.Group(LiveHub.MatchGroup(id)).SendAsync("lineupChanged", new { matchId = id });
+        }
+        TempData["Success"] = "تم حفظ ترتيب اللاعبين على الملعب.";
+        return RedirectToAction(nameof(Index), new { id });
+    }
+
+    private Task<List<SportPosition>> FootballLinesAsync() =>
+        db.SportPositions.AsNoTracking().Where(p => p.SportId == SeedData.FootballSportId && new[] { "GK", "DF", "MF", "FW" }.Contains(p.Code))
+            .OrderBy(p => p.SortOrder).ToListAsync();
 
     [HttpPost]
     public async Task<IActionResult> SaveReport(int id, int? bestPlayerId, int? attendance, string? summary)
@@ -484,18 +527,20 @@ public class MatchControlController(ApplicationDbContext db, IHubContext<LiveHub
             .Select(tp => new SquadPlayer
             {
                 Id = tp.PlayerId, Name = tp.Player.FullNameAr, Number = tp.ShirtNumber,
-                Position = tp.Position != null ? tp.Position.NameAr : tp.Player.Position != null ? tp.Player.Position.NameAr : null
+                Position = tp.Position != null ? tp.Position.NameAr : tp.Player.Position != null ? tp.Player.Position.NameAr : null,
+                PositionId = tp.PositionId ?? tp.Player.PositionId
             }).ToListAsync();
         // Players who were in this match's lineup but have since left the team still appear.
         var missing = lineup.Where(l => l.TeamId == teamId && squad.All(s => s.Id != l.PlayerId)).Select(l => l.PlayerId).ToList();
         if (missing.Count > 0)
             squad.AddRange(await db.Players.AsNoTracking().Where(p => missing.Contains(p.Id))
-                .Select(p => new SquadPlayer { Id = p.Id, Name = p.FullNameAr }).ToListAsync());
+                .Select(p => new SquadPlayer { Id = p.Id, Name = p.FullNameAr, PositionId = p.PositionId }).ToListAsync());
         foreach (var s in squad)
         {
             var l = lineup.FirstOrDefault(x => x.PlayerId == s.Id && x.TeamId == teamId);
             s.InLineup = l != null;
             s.IsStarter = l?.IsStarter ?? false;
+            if (l != null) { s.PositionId = l.PositionId ?? s.PositionId; s.PitchOrder = l.PitchOrder; }
         }
         return squad;
     }

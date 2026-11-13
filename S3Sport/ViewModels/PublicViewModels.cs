@@ -38,6 +38,8 @@ public class LineupRow
     public string? PhotoPath { get; set; }
     public bool IsStarter { get; set; }
     public bool IsCaptain { get; set; }
+    /// <summary>Place within the line on the pitch, first = right-most (null = by shirt number).</summary>
+    public int? PitchOrder { get; set; }
 }
 
 public class MatchDetailsViewModel

@@ -6,7 +6,7 @@
     var bench = Model.Players.Where(p => !p.IsStarter).ToList();
     string RowOf(LineupRow p) => p.PositionCode is "GK" or "DF" or "MF" or "FW" ? p.PositionCode : "MF";
     var rows = new[] { "FW", "MF", "DF", "GK" }
-        .Select(code => starters.Where(p => RowOf(p) == code).OrderBy(p => p.Number ?? 999).ToList())
+        .Select(code => starters.Where(p => RowOf(p) == code).OrderBy(p => p.PitchOrder ?? int.MaxValue).ThenBy(p => p.Number ?? 999).ToList())
         .Where(r => r.Count > 0).ToList();
     var allPlaced = starters.Count > 0 && starters.All(p => p.PositionCode is "GK" or "DF" or "MF" or "FW");
     var outfield = new[] { "DF", "MF", "FW" }.Select(c => starters.Count(p => p.PositionCode == c)).Where(n => n > 0);

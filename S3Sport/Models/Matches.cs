@@ -134,6 +134,9 @@ public class MatchLineup : BaseEntity
     public SportPosition? Position { get; set; }
     public bool IsStarter { get; set; }
     public bool IsCaptain { get; set; }
+    /// <summary>Place of a starter within their line on the pitch view, first = right-most (null = by shirt number).
+    /// Set by the match operator together with <see cref="PositionId"/> (the line), and kept when the lineup is re-saved.</summary>
+    public int? PitchOrder { get; set; }
 }
 
 public class MatchOfficial : BaseEntity

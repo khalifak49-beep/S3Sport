@@ -378,5 +378,43 @@
         });
     });
 
+    // ---------- pitch arrangement: line per starter (select) and order within the line (arrows) ----------
+    const arrange = document.getElementById('pitchArrange');
+    if (arrange) {
+        const refresh = team => {
+            team.querySelectorAll('[data-line]').forEach(line => {
+                const slots = [...line.querySelectorAll('.pitch-slot')];
+                line.classList.toggle('is-empty', slots.length === 0);
+                slots.forEach((s, i) => {
+                    s.querySelector('[data-order]').value = i + 1;
+                    s.querySelector('[data-move="-1"]').disabled = i === 0;
+                    s.querySelector('[data-move="1"]').disabled = i === slots.length - 1;
+                });
+            });
+            // Formation (e.g. 4-3-3) only when exactly one goalkeeper, like the public pitch.
+            const count = code => team.querySelectorAll(`[data-code="${code}"] .pitch-slot`).length;
+            const outfield = ['DF', 'MF', 'FW'].map(count).filter(n => n > 0);
+            team.querySelector('[data-formation]').textContent = count('GK') === 1 && outfield.length ? outfield.join('-') : '';
+        };
+        arrange.querySelectorAll('[data-pitch-team]').forEach(refresh);
+        arrange.addEventListener('click', e => {
+            const btn = e.target.closest('[data-move]');
+            if (!btn) { return; }
+            const slot = btn.closest('.pitch-slot');
+            if (btn.dataset.move === '-1') { slot.previousElementSibling?.classList.contains('pitch-slot') && slot.parentElement.insertBefore(slot, slot.previousElementSibling); }
+            else if (slot.nextElementSibling) { slot.parentElement.insertBefore(slot.nextElementSibling, slot); }
+            refresh(slot.closest('[data-pitch-team]'));
+            btn.disabled ? slot.querySelector('[data-move]:not(:disabled)')?.focus() : btn.focus();
+        });
+        arrange.addEventListener('change', e => {
+            const select = e.target.closest('[data-line-select]');
+            if (!select) { return; }
+            const team = select.closest('[data-pitch-team]');
+            team.querySelector(`[data-line="${select.value}"]`).appendChild(select.closest('.pitch-slot'));
+            refresh(team);
+            select.focus();
+        });
+    }
+
     render();
 })();

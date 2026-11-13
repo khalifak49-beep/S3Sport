@@ -83,6 +83,61 @@
                     <button class="btn btn-primary mt-3" type="submit">حفظ التشكيلة</button>
                 </form>
             </details>
+            @{
+                // Starters arranged on the pitch: lines from attack (top) to goalkeeper (bottom), as on the public page.
+                // A starter without a line stands in midfield, as the public pitch shows them.
+                var lineOrder = Model.Positions.OrderByDescending(p => p.SortOrder).ToList();
+                var midfield = Model.Positions.FirstOrDefault(p => p.Code == "MF")?.Id;
+                var slot = 0;
+            }
+            @if (Model.Positions.Count > 0 && (Model.HomeSquad.Any(p => p.IsStarter) || Model.AwaySquad.Any(p => p.IsStarter)))
+            {
+                <details class="s3-card mb-3" id="pitchArrange">
+                    <summary class="s3-card-header"><h2><i class="fa-solid fa-arrows-up-down-left-right me-1"></i>ترتيب اللاعبين على الملعب</h2><span class="small text-muted">الخط والترتيب</span></summary>
+                    <form asp-action="SavePitch" asp-route-id="@Model.MatchId" method="post" class="s3-card-body">
+                        <p class="small text-muted">غيّر خط اللاعب، ورتّبه داخل الخط بالأسهم (الأول يظهر في اليمين). يمكن التعديل في أي وقت، ويتحدّث الملعب عند المتابعين مباشرة.</p>
+                        <div class="row g-3">
+                            @foreach (var (side, squad, name) in new[] { ("home", Model.HomeSquad, Model.HomeName), ("away", Model.AwaySquad, Model.AwayName) })
+                            {
+                                var starters = squad.Where(p => p.IsStarter).ToList();
+                                if (starters.Count == 0) { continue; }
+                                int LineOf(SquadPlayer p) => p.PositionId is int pid && Model.Positions.Any(x => x.Id == pid) ? pid : midfield ?? 0;
+                                <div class="col-md-6" data-pitch-team>
+                                    <div class="d-flex align-items-center gap-2 mb-2">
+                                        <span class="fw-semibold">@name</span>
+                                        <span class="pitch-formation" data-formation></span>
+                                    </div>
+                                    @foreach (var line in lineOrder)
+                                    {
+                                        <div class="pitch-line" data-line="@line.Id" data-code="@line.Code">
+                                            <div class="pitch-line-head small text-muted">@line.NameAr</div>
+                                            @foreach (var p in starters.Where(p => LineOf(p) == line.Id).OrderBy(p => p.PitchOrder ?? int.MaxValue).ThenBy(p => p.Number ?? 999))
+                                            {
+                                                <div class="lineup-row pitch-slot">
+                                                    <input type="hidden" name="slots[@slot].PlayerId" value="@p.Id" />
+                                                    <input type="hidden" name="slots[@slot].Order" value="@(p.PitchOrder ?? 0)" data-order />
+                                                    <span class="shirt-number">@(p.Number?.ToString() ?? "—")</span>
+                                                    <span class="flex-grow-1 text-truncate">@p.Name</span>
+                                                    <button type="button" class="btn btn-sm btn-soft" data-move="-1" title="إلى اليمين" aria-label="تحريك @p.Name إلى اليمين"><i class="fa-solid fa-arrow-right"></i></button>
+                                                    <button type="button" class="btn btn-sm btn-soft" data-move="1" title="إلى اليسار" aria-label="تحريك @p.Name إلى اليسار"><i class="fa-solid fa-arrow-left"></i></button>
+                                                    <select name="slots[@slot].PositionId" class="form-select form-select-sm w-auto" aria-label="خط @p.Name" data-line-select>
+                                                        @foreach (var opt in Model.Positions)
+                                                        {
+                                                            <option value="@opt.Id" selected="@(opt.Id == LineOf(p))">@opt.NameAr</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                                slot++;
+                                            }
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+                        <button class="btn btn-primary mt-3" type="submit">حفظ الترتيب</button>
+                    </form>
+                </details>
+            }
         </div>
         <!-- Report -->
         <div class="col-lg-5">
